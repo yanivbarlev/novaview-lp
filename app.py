@@ -6,7 +6,7 @@ Clean, minimal Flask app with only essential routes
 import os
 import logging
 from datetime import datetime
-from flask import Flask, render_template, request, send_from_directory, jsonify
+from flask import Flask, render_template, request, send_from_directory, jsonify, redirect
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -258,27 +258,59 @@ def track_exit_popup():
     return jsonify({'status': 'success'})
 
 
-# === ROUTE 6: Post-Install Conversion Page ===
-@app.route('/post_install/')
-def post_install():
+# === ROUTE 6: Thank You Page (Local) ===
+@app.route('/thankyou-downloadmanager.html')
+def thankyou_downloadmanager():
     """
-    Conversion tracking page shown after extension installation
+    Local thank you page for testing
+    Matches production URL structure
 
     URL Parameters:
+        source (str): Source identifier (e.g., 'novaview')
         gclid (str): Google Click ID for conversion attribution
 
     Returns:
         HTML thank you page with conversion tracking
     """
+    source = request.args.get('source', 'novaview')
     gclid = request.args.get('gclid', '')
 
     logger.info(
-        f'POST_INSTALL gclid="{gclid}" '
+        f'THANKYOU_PAGE source="{source}" gclid="{gclid}" '
         f'ip="{request.remote_addr}" '
         f'user_agent="{request.headers.get("User-Agent", "Unknown")[:100]}"'
     )
 
-    return render_template('thankyou.html', gclid=gclid)
+    return render_template('thankyou.html', gclid=gclid, source=source)
+
+
+# === ROUTE 7: Post-Install Redirect (Production) ===
+@app.route('/post_install/')
+def post_install():
+    """
+    Post-install redirect for production deployment
+    Redirects to the main eguidesearches.com thank you page
+
+    URL Parameters:
+        gclid (str): Google Click ID for conversion attribution
+
+    Returns:
+        Redirect to production thank you page
+    """
+    gclid = request.args.get('gclid', '')
+
+    logger.info(
+        f'POST_INSTALL_REDIRECT gclid="{gclid}" '
+        f'ip="{request.remote_addr}" '
+        f'user_agent="{request.headers.get("User-Agent", "Unknown")[:100]}"'
+    )
+
+    # Build redirect URL with gclid if present
+    thank_you_url = 'https://www.eguidesearches.com/thankyou-downloadmanager.html?source=novaview'
+    if gclid:
+        thank_you_url += f'&gclid={gclid}'
+
+    return redirect(thank_you_url)
 
 
 # === Legal Pages ===

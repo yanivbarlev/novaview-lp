@@ -638,6 +638,281 @@ Click "Reload" button in PythonAnywhere web tab
 4. **Session Storage:** Exit popup uses sessionStorage - resets when browser closes
 5. **YouTube Redirect:** Hardcoded URL - consider making configurable
 
+## Missing Features from Old Landing Page System
+
+**Analysis Date:** 2025-12-06
+**Comparison:** new-lp vs old steven-lp system
+
+### CRITICAL MISSING ROUTES ⭐⭐⭐
+
+#### 1. `/nova` Route - **HIGH PRIORITY**
+**Status:** ❌ Missing
+**Location in old:** app.py:628-666
+**Description:** Nova extension landing page with clean minimal design
+**Impact:** This route was recently added (git commit: "Add /nova landing page") and appears to be actively used
+**Files Needed:**
+- Template: `nova_landing.html` (copy from old `templates/nova_landing.html`)
+- Route handler in `app.py`
+- Async image loading support
+
+**Implementation Notes:**
+- Uses async background image loading (never blocks on API calls)
+- Clean, minimal white design (different from teal gradient)
+- Has cache-control headers for instant updates
+
+#### 2. `/stackfree` Route - **MEDIUM PRIORITY**
+**Status:** ❌ Missing
+**Location in old:** app.py:585-626
+**Description:** StackFree/product-specific landing page
+**Impact:** Product-specific landing page (only needed if using multiple product variations)
+**Files Needed:**
+- Uses existing `index.html` template
+- Route handler with debug timestamp feature
+
+**Implementation Notes:**
+- Has debug timestamp injection for template troubleshooting
+- Logs template modification time for cache debugging
+
+### API & Administrative Endpoints
+
+#### 3. `/api/default-images` - **MEDIUM PRIORITY**
+**Status:** ❌ Missing
+**Location in old:** app.py:668-697
+**Description:** Serves default images when no keyword is provided
+**Impact:** Needed if default images feature is required
+**Response Format:**
+```json
+{
+  "keyword": "default",
+  "images": [
+    {"url": "/image/def_1.jpg", "thumbnail": "/image/def_1.jpg", "title": "Default Image 1", "source": "Default"},
+    {"url": "/image/def_2.jpg", "thumbnail": "/image/def_2.jpg", "title": "Default Image 2", "source": "Default"},
+    {"url": "/image/def_3.jpg", "thumbnail": "/image/def_3.jpg", "title": "Default Image 3", "source": "Default"}
+  ],
+  "count": 3,
+  "cached": true,
+  "default": true
+}
+```
+
+#### 4. `/api/health` - **HIGH PRIORITY**
+**Status:** ❌ Missing
+**Location in old:** app.py:833-841
+**Description:** Health check endpoint with API key validation
+**Impact:** Critical for production monitoring and uptime checks
+**Response Format:**
+```json
+{
+  "status": "healthy",
+  "api_key_configured": true,
+  "cx_configured": true,
+  "timestamp": "2025-12-06T17:00:00.000Z"
+}
+```
+
+**Use Cases:**
+- Uptime monitoring (Pingdom, UptimeRobot)
+- Production health checks
+- API configuration validation
+
+#### 5. `/api/cache/stats` - **HIGH PRIORITY**
+**Status:** ❌ Missing
+**Location in old:** app.py:843-907
+**Description:** Cache statistics and storage usage metrics
+**Impact:** Critical for monitoring cache performance and storage costs
+**Response Format:**
+```json
+{
+  "keywords_cached": 45,
+  "storage": {
+    "final_images": {
+      "count": 135,
+      "size_mb": 3.2
+    },
+    "candidates_cache": {
+      "count": 87,
+      "size_mb": 12.5
+    },
+    "legacy_thumbnails": {
+      "count": 0,
+      "size_mb": 0.0
+    },
+    "total_size_mb": 15.7
+  },
+  "cache_ttl_hours": 2400,
+  "target_file_size_kb": 25
+}
+```
+
+**Use Cases:**
+- Monitor cache efficiency
+- Track storage usage
+- Identify cache cleanup opportunities
+- Production performance metrics
+
+#### 6. `/api/cache/clear` - **MEDIUM PRIORITY**
+**Status:** ❌ Missing
+**Location in old:** app.py:909-977
+**Description:** Administrative cache clearing endpoint (POST)
+**Impact:** Useful for manual cache management and testing
+**Request:** POST (no body required)
+**Response Format:**
+```json
+{
+  "status": "success",
+  "cache_entries_cleared": 12,
+  "final_images_cleared": 135,
+  "candidate_keywords_cleared": 45,
+  "legacy_thumbnails_cleared": 0,
+  "total_files_cleared": 180,
+  "processing_time_seconds": 0.234,
+  "timestamp": "2025-12-06T17:00:00.000Z"
+}
+```
+
+**Security Note:** Should add authentication/authorization before production use
+
+#### 7. `/thumbnail/<filename>` - **LOW PRIORITY**
+**Status:** ❌ Missing
+**Location in old:** app.py:771-774
+**Description:** Legacy thumbnail endpoint (redirects to `/image/<filename>`)
+**Impact:** Only needed for backward compatibility with old URLs
+**Implementation:** Simple redirect:
+```python
+@app.route('/thumbnail/<filename>')
+def serve_thumbnail(filename):
+    return serve_image(filename)
+```
+
+#### 8. `/test-exit-popup` - **LOW PRIORITY**
+**Status:** ❌ Missing
+**Location in old:** app.py:828-831
+**Description:** Test page for exit popup functionality
+**Impact:** Only needed for development/testing
+**Implementation:**
+```python
+@app.route('/test-exit-popup')
+def test_exit_popup():
+    return send_file('test-exit-popup.html')
+```
+
+### Missing Static Files
+
+#### 1. Exit Popup CSS - **MEDIUM PRIORITY**
+**Status:** ⚠️ Possibly Missing/Inline
+**File:** `static/css/exit-popup.css`
+**Impact:** Old version has dedicated CSS file, new version may have inline styles
+**Action:** Verify if exit popup styles are inline in `landing.html` or need separate CSS file
+
+#### 2. Browser Icons - **LOW PRIORITY**
+**Status:** ⚠️ Different Versions
+**Files:**
+- Old: `static/chrome-browser-transparent-icon.png` (transparent version)
+- Old: `static/edge-browser-icon.png` (different from new version)
+- New: `static/chrome-icon.png`, `static/edge-icon.png`
+**Impact:** Visual consistency (old has transparent Chrome icon)
+**Action:** Consider copying transparent version if preferred
+
+#### 3. EGuideSearches Logo - **LOW PRIORITY**
+**Status:** ⚠️ Different Names
+**Files:**
+- Old: `static/eguidesearches_logo.png`
+- New: `static/logo.png`
+**Impact:** None (just different naming convention)
+**Action:** No action needed unless old logo has better quality/design
+
+### Missing Configuration
+
+#### 1. Legacy Cache Directory - **LOW PRIORITY**
+**Status:** ❌ Missing in config.py
+**Config:**
+```python
+CACHED_THUMBS_DIR = 'cached_thumbs'  # Legacy compatibility
+```
+**Impact:** Only needed if supporting old cache format
+**Action:** Add to config.py if backward compatibility needed
+
+#### 2. Thumbnail Quality Setting - **LOW PRIORITY**
+**Status:** ❌ Missing in config.py
+**Config:**
+```python
+THUMBNAIL_QUALITY = 75
+```
+**Impact:** Hardcoded in old version, not configurable in new version
+**Action:** Add to config.py for consistency
+
+### Missing Template Global Functions
+
+#### Browser-Specific URL Function - **LOW PRIORITY**
+**Status:** ❌ Missing
+**Location in old:** app.py:52-68
+**Function:**
+```python
+@app.template_global()
+def get_store_url_for_browser(browser_type):
+    """Get appropriate store URL based on browser type"""
+    if browser_type == 'edge':
+        return EDGE_STORE_URL
+    elif browser_type == 'chrome':
+        return CHROME_STORE_URL
+    else:
+        return CHROME_STORE_URL  # Default to Chrome store
+```
+**Impact:** May be used in templates for dynamic URL selection
+**Action:** Add if templates need browser-specific logic
+
+### Feature Improvements in New Version ✅
+
+The following were IMPROVED in the new version (not missing):
+
+1. **Legal Pages Consolidation** - Old had 7 separate templates, new has 1 base template with content files (BETTER)
+2. **Post-Install Behavior** - Old renders template, new redirects to eguidesearches.com (BETTER for production)
+3. **Google Tag ID** - Old hardcoded, new centralized in config.py (BETTER)
+4. **Template Paths** - New uses absolute paths to prevent loading issues (BETTER)
+
+### Recommendations Summary
+
+#### MUST ADD (High Priority):
+1. ✅ `/nova` route + `nova_landing.html` template
+2. ✅ `/api/health` endpoint for production monitoring
+3. ✅ `/api/cache/stats` endpoint for performance tracking
+
+#### SHOULD ADD (Medium Priority):
+4. ⚠️ `/api/cache/clear` endpoint (with authentication)
+5. ⚠️ `/api/default-images` endpoint (if default images needed)
+6. ⚠️ `/stackfree` route (if product-specific pages needed)
+7. ⚠️ Verify exit popup CSS is properly implemented
+
+#### OPTIONAL (Low Priority):
+8. ⏸️ `/test-exit-popup` test page
+9. ⏸️ `/thumbnail/<filename>` legacy endpoint
+10. ⏸️ Copy transparent Chrome icon if preferred
+11. ⏸️ Add `CACHED_THUMBS_DIR` and `THUMBNAIL_QUALITY` to config
+12. ⏸️ Add `get_store_url_for_browser()` template function
+
+### Implementation Plan for Tomorrow
+
+**Priority 1: Critical Routes (30 minutes)**
+- Copy `/nova` route from old app.py
+- Copy `nova_landing.html` template
+- Test `/nova` route locally
+
+**Priority 2: Monitoring Endpoints (20 minutes)**
+- Implement `/api/health` endpoint
+- Implement `/api/cache/stats` endpoint
+- Test both endpoints
+
+**Priority 3: Cache Management (15 minutes)**
+- Implement `/api/cache/clear` endpoint (POST only)
+- Add basic authentication/token check
+- Test cache clearing
+
+**Priority 4: Default Images (10 minutes)**
+- Implement `/api/default-images` endpoint
+- Test with default image files
+
+**Total Estimated Time:** ~75 minutes for high/medium priority items
+
 ## Support & Maintenance
 
 **Repository Issues:** https://github.com/yanivbarlev/novaview-lp/issues
