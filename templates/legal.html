@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }} - EGuideSearches</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #eff5f4;
+            color: #202125;
+            line-height: 1.6;
+        }
+
+        .header {
+            background-color: #134e4a;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header a {
+            color: white;
+            text-decoration: underline;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: white;
+            min-height: calc(100vh - 200px);
+        }
+
+        .content h2 {
+            color: #134e4a;
+            font-size: 24px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        .content h3 {
+            color: #134e4a;
+            font-size: 20px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .content p {
+            margin-bottom: 15px;
+            color: #727171;
+        }
+
+        .content ul, .content ol {
+            margin-left: 30px;
+            margin-bottom: 15px;
+            color: #727171;
+        }
+
+        .content li {
+            margin-bottom: 8px;
+        }
+
+        .content strong {
+            color: #202125;
+        }
+
+        footer {
+            background-color: #134e4a;
+            color: white;
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        footer a {
+            color: white;
+            text-decoration: underline;
+            margin: 0 5px;
+        }
+
+        .last-updated {
+            font-style: italic;
+            color: #999;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ page_title }}</h1>
+        <p><a href="/">← Back to Main Page</a></p>
+    </div>
+
+    <div class="container">
+        <div class="content">
+            <p class="last-updated">Last Updated: January 2025</p>
+
+            {% if page == 'privacy' %}
+                {% include 'legal_privacy.html' %}
+            {% elif page == 'terms' %}
+                {% include 'legal_terms.html' %}
+            {% elif page == 'eula' %}
+                {% include 'legal_eula.html' %}
+            {% elif page == 'copyright' %}
+                {% include 'legal_copyright.html' %}
+            {% elif page == 'about' %}
+                {% include 'legal_about.html' %}
+            {% elif page == 'uninstall' %}
+                {% include 'legal_uninstall.html' %}
+            {% elif page == 'contact' %}
+                {% include 'legal_contact.html' %}
+            {% endif %}
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 EGuideSearches. All Rights Reserved.</p>
+        <div class="footer-links">
+            <a href="/about">ABOUT US</a> |
+            <a href="/privacy">PRIVACY POLICY</a> |
+            <a href="/copyright">COPYRIGHT POLICY</a> |
+            <a href="/terms">TERMS of USE</a> |
+            <a href="/uninstall">UNINSTALL</a> |
+            <a href="/contact">CONTACT US</a>
+        </div>
+    </footer>
+</body>
+</html>
