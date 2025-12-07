@@ -45,6 +45,29 @@ os.makedirs(CANDIDATES_CACHE_DIR, exist_ok=True)
 image_service = ImageSearchService()
 
 
+# URL Normalization - Remove trailing slashes for consistency
+# This ensures browsers don't cache /path/ and /path separately
+@app.before_request
+def normalize_trailing_slash():
+    """
+    Remove trailing slashes from non-root URLs
+    Prevents browser from caching .com/? and .com? as different pages
+    """
+    # Only process non-root paths with trailing slashes
+    if request.path != '/' and request.path.endswith('/'):
+        # Build new URL without trailing slash
+        new_path = request.path.rstrip('/')
+        query_string = request.query_string.decode('utf-8')
+
+        if query_string:
+            redirect_url = f"{new_path}?{query_string}"
+        else:
+            redirect_url = new_path
+
+        # 301 permanent redirect
+        return redirect(redirect_url, code=301)
+
+
 # Template global functions
 @app.template_global()
 def chrome_store_url():
