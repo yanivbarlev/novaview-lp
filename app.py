@@ -379,6 +379,32 @@ def thankyou_downloadmanager():
     return render_template('thankyou.html', gclid=gclid, source=source)
 
 
+# === ROUTE 7B: Thank You Page (TEST VERSION - NO REDIRECT) ===
+@app.route('/thankyou-test')
+def thankyou_test():
+    """
+    TEST VERSION of thank you page - NO YouTube redirect
+    Use this to verify conversion tracking in DevTools
+
+    URL Parameters:
+        source (str): Source identifier (e.g., 'novaview')
+        gclid (str): Google Click ID for conversion attribution
+
+    Returns:
+        HTML thank you page WITHOUT YouTube redirect
+    """
+    source = request.args.get('source', 'novaview')
+    gclid = request.args.get('gclid', '')
+
+    logger.info(
+        f'THANKYOU_TEST_PAGE source="{source}" gclid="{gclid}" '
+        f'ip="{request.remote_addr}" '
+        f'user_agent="{request.headers.get("User-Agent", "Unknown")[:100]}"'
+    )
+
+    return render_template('thankyou-test.html', gclid=gclid, source=source)
+
+
 # === ROUTE 8: Post-Install Redirect (Production) ===
 @app.route('/post_install/')
 def post_install():

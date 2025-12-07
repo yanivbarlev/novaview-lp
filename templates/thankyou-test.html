@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thank You - NovaView Installed (TEST VERSION)</title>
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ google_tag_id() }}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', '{{ google_tag_id() }}');
+
+      // Track NovaView installation conversion (fires immediately)
+      gtag('event', 'conversion', {
+          'send_to': '{{ google_tag_id() }}/novaview_install',
+          'value': 1.0,
+          'currency': 'USD'
+      });
+
+      // Debug logging
+      console.log('[HEAD] Conversion fired without GCLID');
+      console.log('[HEAD] dataLayer:', window.dataLayer);
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background-color: #eff5f4;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'%3E%3Cdefs%3E%3ClinearGradient id='teal-gradient' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23134e4a;stop-opacity:1' /%3E%3Cstop offset='50%25' style='stop-color:%23155e75;stop-opacity:0.8' /%3E%3Cstop offset='100%25' style='stop-color:%23134e4a;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23teal-gradient)' /%3E%3Cg opacity='0.3'%3E%3Cpolygon points='0,0 300,200 0,400' fill='%23ffffff' opacity='0.1'/%3E%3Cpolygon points='1200,0 900,300 1200,400' fill='%23ffffff' opacity='0.1'/%3E%3Cpolygon points='600,800 900,600 1200,800' fill='%23ffffff' opacity='0.1'/%3E%3Cpolygon points='0,800 300,600 600,800' fill='%23ffffff' opacity='0.1'/%3E%3C/g%3E%3C/svg%3E");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 60px 40px;
+            text-align: center;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .checkmark {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #5cb85c;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+            animation: scaleIn 0.5s ease-out 0.2s both;
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0);
+            }
+            to {
+                transform: scale(1);
+            }
+        }
+
+        .checkmark svg {
+            width: 50px;
+            height: 50px;
+            stroke: white;
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+            animation: drawCheck 0.5s ease-out 0.4s both;
+        }
+
+        @keyframes drawCheck {
+            from {
+                stroke-dasharray: 100;
+                stroke-dashoffset: 100;
+            }
+            to {
+                stroke-dasharray: 100;
+                stroke-dashoffset: 0;
+            }
+        }
+
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 18px;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 24px;
+            margin: 30px 0;
+            text-align: left;
+        }
+
+        .info-box h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        .info-box ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-box li {
+            color: #555;
+            font-size: 15px;
+            margin-bottom: 12px;
+            padding-left: 28px;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .info-box li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #5cb85c;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .test-notice {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+            color: #856404;
+            font-weight: 500;
+        }
+
+        .test-notice h3 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .debug-info {
+            background: #f0f0f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: left;
+            font-family: monospace;
+            font-size: 12px;
+            color: #333;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 40px 24px;
+            }
+
+            h1 {
+                font-size: 26px;
+            }
+
+            .subtitle {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="checkmark">
+            <svg viewBox="0 0 52 52">
+                <polyline points="14 27 22 35 38 17"/>
+            </svg>
+        </div>
+
+        <h1>Thank You for Installing NovaView!</h1>
+        <p class="subtitle">Your browser extension has been successfully added.</p>
+
+        <div class="info-box">
+            <h2>What's Next?</h2>
+            <ul>
+                <li>Click the NovaView icon in your browser toolbar</li>
+                <li>Search for any product manual or user guide</li>
+                <li>Access millions of manuals instantly</li>
+                <li>Enjoy ambient viewing experiences with your favorite content</li>
+            </ul>
+        </div>
+
+        <div class="test-notice">
+            <h3>⚠️ TEST VERSION - NO REDIRECT</h3>
+            <p>This is a test page for verifying conversion tracking.</p>
+            <p><strong>Production page redirects to YouTube after 3 seconds.</strong></p>
+            <p>GCLID: <strong id="gclid-display">none</strong></p>
+        </div>
+
+        <div class="debug-info">
+            <strong>Debug Information:</strong><br>
+            • Check DevTools Console for [HEAD] and [BODY] logs<br>
+            • Check Network tab for google-analytics.com/g/collect requests<br>
+            • Look for "en: conversion" in request payload
+        </div>
+    </div>
+
+    <script>
+        // Get gclid from URL if present
+        const urlParams = new URLSearchParams(window.location.search);
+        const gclid = urlParams.get('gclid');
+
+        // Display GCLID on page
+        document.getElementById('gclid-display').textContent = gclid || 'none';
+
+        // Debug logging
+        console.log('[BODY] GCLID from URL:', gclid || 'none');
+
+        // If gclid is present, fire conversion again WITH transaction_id
+        if (gclid) {
+            gtag('event', 'conversion', {
+                'send_to': '{{ google_tag_id() }}/novaview_install',
+                'value': 1.0,
+                'currency': 'USD',
+                'transaction_id': gclid
+            });
+            console.log('[BODY] Conversion fired WITH GCLID:', gclid);
+            console.log('[BODY] dataLayer after GCLID conversion:', window.dataLayer);
+        }
+
+        // NO REDIRECT ON TEST VERSION
+        console.log('[TEST MODE] YouTube redirect disabled - page stays open for testing');
+        console.log('[TEST MODE] Check Network tab for google-analytics.com/g/collect requests');
+        console.log('[TEST MODE] dataLayer final state:', window.dataLayer);
+    </script>
+</body>
+</html>
