@@ -230,12 +230,21 @@
     </div>
 
     <script>
-        // Get gclid from URL if present
+        // Get variant from URL, localStorage, or template
         const urlParams = new URLSearchParams(window.location.search);
-        const gclid = urlParams.get('gclid');
+        const variant = urlParams.get('variant') ||
+                       localStorage.getItem('ab_variant') ||
+                       '{{ variant }}' ||
+                       '';
+
+        // Get gclid from URL or localStorage
+        const gclid = urlParams.get('gclid') ||
+                     localStorage.getItem('gclid') ||
+                     '{{ gclid }}';
 
         // Debug logging
         console.log('[BODY] GCLID from URL:', gclid || 'none');
+        console.log('[BODY] Variant:', variant || 'none');
 
         // If gclid is present, fire conversion again WITH transaction_id
         if (gclid) {
@@ -248,6 +257,9 @@
             console.log('[BODY] Conversion fired WITH GCLID:', gclid);
             console.log('[BODY] dataLayer after GCLID conversion:', window.dataLayer);
         }
+
+        // Log for debugging (includes variant now)
+        console.log('Conversion fired - gclid:', gclid, 'variant:', variant);
 
         // Redirect to YouTube channel after 3 seconds (gives time for conversion pixel to fire)
         setTimeout(function() {

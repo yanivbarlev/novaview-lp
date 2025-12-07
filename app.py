@@ -19,7 +19,9 @@ from config import (
     EDGE_STORE_URL,
     FINAL_IMAGES_DIR,
     CANDIDATES_CACHE_DIR,
-    GOOGLE_TAG_ID
+    GOOGLE_TAG_ID,
+    AB_TEST_ENABLED,
+    AB_TEST_NAME
 )
 from utils import detect_browser_type, sanitize_keyword_for_filename
 from image_service import ImageSearchService
@@ -91,21 +93,31 @@ def google_tag_id():
 @app.route('/')
 def landing_page():
     """
-    Main landing page for extension promotion
+    Main landing page for extension promotion with A/B testing support
 
     URL Parameters:
         kw (str): Keyword for image search (default: 'trending')
         img (str): 'true' to show images (default: false)
         gclid (str): Google Click ID for conversion attribution
+        variant (str): A/B test variant ('a' or 'b')
     """
     # Extract and sanitize parameters
     keyword = request.args.get('kw', 'trending').strip()
     show_images = request.args.get('img', '').lower() == 'true'
     gclid = request.args.get('gclid', '')
+    variant = request.args.get('variant', 'a').lower()  # NEW: Get variant from URL
 
     # Sanitize keyword (max 100 chars)
     if not keyword or len(keyword) > 100:
         keyword = 'trending'
+
+    # NEW: Validate variant
+    if variant not in ['a', 'b']:
+        variant = 'a'
+
+    # NEW: If A/B test disabled, force variant A
+    if not AB_TEST_ENABLED:
+        variant = 'a'
 
     # Conditional image display logic
     # Only show images if BOTH img=true AND kw parameter exist
@@ -119,41 +131,56 @@ def landing_page():
     # Get client IP (respects proxy headers)
     client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
 
-    # Logging (critical for debugging)
+    # NEW: Log landing page visit with variant
     logger.info(
-        f'LANDING_PAGE keyword="{keyword}" gclid="{gclid}" '
-        f'show_images={show_images} browser="{browser_type}" '
-        f'user_agent="{user_agent[:100]}" ip="{client_ip}"'
+        f'LANDING_PAGE keyword="{keyword}" gclid="{gclid}" variant="{variant}" '
+        f'show_images={show_images} has_kw_param={has_kw_param} '
+        f'browser="{browser_type}" user_agent="{user_agent[:100]}" ip="{client_ip}"'
     )
+
+    # NEW: Select template based on variant
+    template_name = f'index_variant_{variant}.html'
 
     # Render template with NO server-side image fetching
     # Images will load via JavaScript AJAX after page renders
-    return render_template('landing.html',
+    return render_template(template_name,
                          keyword=keyword,
                          gclid=gclid,
                          show_images=show_images,
-                         browser_type=browser_type)
+                         browser_type=browser_type,
+                         variant=variant,              # NEW
+                         ab_test_enabled=AB_TEST_ENABLED)  # NEW
 
 
 # === ROUTE 2: StackFree Landing Page ===
 @app.route('/stackfree')
 def stackfree_landing():
     """
-    StackFree landing page (identical logic to main landing page)
+    StackFree landing page with A/B testing support (identical logic to main landing page)
 
     URL Parameters:
         kw (str): Keyword for image search (default: 'trending')
         img (str): 'true' to show images (default: false)
         gclid (str): Google Click ID for conversion attribution
+        variant (str): A/B test variant ('a' or 'b')
     """
     # Extract and sanitize parameters
     keyword = request.args.get('kw', 'trending').strip()
     show_images = request.args.get('img', '').lower() == 'true'
     gclid = request.args.get('gclid', '')
+    variant = request.args.get('variant', 'a').lower()  # NEW: Get variant from URL
 
     # Sanitize keyword (max 100 chars)
     if not keyword or len(keyword) > 100:
         keyword = 'trending'
+
+    # NEW: Validate variant
+    if variant not in ['a', 'b']:
+        variant = 'a'
+
+    # NEW: If A/B test disabled, force variant A
+    if not AB_TEST_ENABLED:
+        variant = 'a'
 
     # Conditional image display logic
     # Only show images if BOTH img=true AND kw parameter exist
@@ -167,20 +194,25 @@ def stackfree_landing():
     # Get client IP (respects proxy headers)
     client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
 
-    # Logging (critical for debugging)
+    # NEW: Log stackfree page visit with variant
     logger.info(
-        f'STACKFREE_PAGE keyword="{keyword}" gclid="{gclid}" '
-        f'show_images={show_images} browser="{browser_type}" '
-        f'user_agent="{user_agent[:100]}" ip="{client_ip}"'
+        f'STACKFREE_PAGE keyword="{keyword}" gclid="{gclid}" variant="{variant}" '
+        f'show_images={show_images} has_kw_param={has_kw_param} '
+        f'browser="{browser_type}" user_agent="{user_agent[:100]}" ip="{client_ip}"'
     )
+
+    # NEW: Select template based on variant
+    template_name = f'index_variant_{variant}.html'
 
     # Render template with NO server-side image fetching
     # Images will load via JavaScript AJAX after page renders
-    return render_template('landing.html',
+    return render_template(template_name,
                          keyword=keyword,
                          gclid=gclid,
                          show_images=show_images,
-                         browser_type=browser_type)
+                         browser_type=browser_type,
+                         variant=variant,              # NEW
+                         ab_test_enabled=AB_TEST_ENABLED)  # NEW
 
 
 # === ROUTE 3: Image Search API ===
@@ -286,12 +318,13 @@ def serve_image(filename):
 @app.route('/api/track/click', methods=['POST'])
 def track_click():
     """
-    Track CTA button clicks with attribution data
+    Track CTA button clicks with attribution data and A/B test variant
 
     Request Body (JSON):
         button_id (str): Button identifier
         keyword (str): Current keyword
         gclid (str): Google Click ID
+        variant (str): A/B test variant
         timestamp (str): ISO timestamp
 
     Returns:
@@ -302,15 +335,18 @@ def track_click():
     button_id = data.get('button_id', 'unknown')
     keyword = data.get('keyword', 'unknown')
     gclid = data.get('gclid', '')
+    variant = data.get('variant', '')  # NEW: Add variant
 
     user_agent = request.headers.get('User-Agent', 'Unknown')
     client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
     referer = request.headers.get('Referer', '')
 
+    # NEW: Log click event with variant
     logger.info(
-        f'CTA_CLICK button_id="{button_id}" keyword="{keyword}" '
-        f'gclid="{gclid}" user_agent="{user_agent[:100]}" '
-        f'ip="{client_ip}" referer="{referer}"'
+        f'CTA_CLICK button="{button_id}" keyword="{keyword}" '
+        f'gclid="{gclid}" variant="{variant}" '
+        f'user_agent="{user_agent[:100]}" ip="{client_ip}" referer="{referer}" '
+        f'conversion_tracking={bool(gclid)}'
     )
 
     return jsonify({
@@ -323,12 +359,13 @@ def track_click():
 @app.route('/api/track/exit-popup', methods=['POST'])
 def track_exit_popup():
     """
-    Track exit popup events
+    Track exit popup events with A/B test variant
 
     Request Body (JSON):
         event (str): Event type (exit_popup_shown, exit_popup_dismissed, exit_popup_cta_clicked)
         keyword (str): Current keyword
         gclid (str): Google Click ID
+        variant (str): A/B test variant
         timestamp (str): ISO timestamp
 
     Returns:
@@ -339,18 +376,22 @@ def track_exit_popup():
     event = data.get('event', 'unknown')
     keyword = data.get('keyword', 'unknown')
     gclid = data.get('gclid', '')
+    variant = data.get('variant', '')  # NEW: Add variant
     timestamp = data.get('timestamp', '')
 
     user_agent = request.headers.get('User-Agent', 'Unknown')
     client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
+    referer = request.headers.get('Referer', '')
 
+    # NEW: Log exit popup event with variant
     logger.info(
-        f'EXIT_POPUP event="{event}" keyword="{keyword}" '
-        f'gclid="{gclid}" timestamp="{timestamp}" '
-        f'user_agent="{user_agent[:100]}" ip="{client_ip}"'
+        f'EXIT_POPUP_EVENT event="{event}" keyword="{keyword}" '
+        f'gclid="{gclid}" variant="{variant}" '
+        f'user_agent="{user_agent[:100]}" ip="{client_ip}" referer="{referer}" '
+        f'conversion_tracking={bool(gclid)}'
     )
 
-    return jsonify({'status': 'success'})
+    return jsonify({'status': 'success', 'event': event, 'timestamp': timestamp})
 
 
 # === ROUTE 7: Thank You Page (Local) ===
@@ -409,29 +450,78 @@ def thankyou_test():
 @app.route('/post_install/')
 def post_install():
     """
-    Post-install redirect for production deployment
+    Post-install redirect for production deployment with A/B test support
     Redirects to the main eguidesearches.com thank you page
 
     URL Parameters:
         gclid (str): Google Click ID for conversion attribution
+        variant (str): A/B test variant
 
     Returns:
         Redirect to production thank you page
     """
     gclid = request.args.get('gclid', '')
+    variant = request.args.get('variant', '')  # NEW: Get variant from URL
+
+    # NEW: Log conversion with variant
+    user_agent = request.headers.get('User-Agent', 'Unknown')[:100]
+    client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
 
     logger.info(
-        f'POST_INSTALL_REDIRECT gclid="{gclid}" '
-        f'ip="{request.remote_addr}" '
-        f'user_agent="{request.headers.get("User-Agent", "Unknown")[:100]}"'
+        f'CONVERSION gclid="{gclid}" variant="{variant}" '
+        f'user_agent="{user_agent}" ip="{client_ip}"'
     )
 
-    # Build redirect URL with gclid if present
+    # Build redirect URL with gclid and variant if present
     thank_you_url = 'https://www.eguidesearches.com/thankyou-downloadmanager.html?source=novaview'
     if gclid:
         thank_you_url += f'&gclid={gclid}'
+    if variant:
+        thank_you_url += f'&variant={variant}'
 
     return redirect(thank_you_url)
+
+
+# === ROUTE 9: A/B Test Dashboard ===
+@app.route('/admin/ab-results')
+def ab_dashboard():
+    """A/B test results dashboard - Windows compatible"""
+    from ab_testing.ab_log_parser import ABLogParser
+
+    parser = ABLogParser()
+
+    try:
+        # Read last 5000 lines from log file for analysis
+        log_lines = []
+        log_file = 'app.log'  # Adjust path if logs are stored elsewhere
+
+        if os.path.exists(log_file):
+            with open(log_file, 'r', encoding='utf-8') as f:
+                # Read all lines and get last 5000
+                all_lines = f.readlines()
+                log_lines = all_lines[-5000:] if len(all_lines) > 5000 else all_lines
+
+        metrics = parser.parse_logs(log_lines)
+        results = parser.calculate_conversion_rates()
+        winner, _ = parser.get_winner(min_impressions=50)
+
+    except Exception as e:
+        logger.error(f"Error reading logs for dashboard: {e}")
+        # Return empty results on error
+        results = {
+            'a': {'impressions': 0, 'conversions': 0, 'clicks': 0,
+                  'exit_popup_shows': 0, 'conversion_rate': 0.0, 'click_rate': 0.0},
+            'b': {'impressions': 0, 'conversions': 0, 'clicks': 0,
+                  'exit_popup_shows': 0, 'conversion_rate': 0.0, 'click_rate': 0.0}
+        }
+        winner = 'error'
+
+    return render_template('ab_dashboard.html',
+                         variant_a=results.get('a', {}),
+                         variant_b=results.get('b', {}),
+                         winner=winner,
+                         test_enabled=AB_TEST_ENABLED,
+                         test_name=AB_TEST_NAME)
 
 
 # === Legal Pages ===

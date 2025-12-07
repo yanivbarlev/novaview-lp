@@ -171,6 +171,7 @@ class ExitIntentPopup {
             // Track with your existing analytics
             const gclid = localStorage.getItem('gclid') || '';
             const keyword = new URLSearchParams(window.location.search).get('kw') || 'trending';
+            const variant = window.abTestVariant || '';  // NEW: Get variant
 
             fetch('/api/track/exit-popup', {
                 method: 'POST',
@@ -181,6 +182,7 @@ class ExitIntentPopup {
                     event: eventName,
                     keyword: keyword,
                     gclid: gclid,
+                    variant: variant,  // NEW: Add variant
                     timestamp: new Date().toISOString(),
                     ...additionalData
                 })

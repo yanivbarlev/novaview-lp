@@ -43,3 +43,17 @@ COPYRIGHT_HOLDER = 'EGuideSearches'
 
 # Google Tag ID for conversion tracking
 GOOGLE_TAG_ID = 'AW-1006081641'
+
+# =============================================================================
+# A/B Testing Configuration
+# =============================================================================
+
+# Master toggle to enable/disable A/B test
+# Set to False to disable test and serve variant A to all users
+AB_TEST_ENABLED = True
+
+# Test metadata
+AB_TEST_NAME = 'landing_page_design_v1'
+AB_VARIANT_A_NAME = 'control'      # Current design
+AB_VARIANT_B_NAME = 'treatment'    # Alternative design
+AB_VARIANT_SPLIT = 0.5             # 50-50 split

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A/B Test Results - {{ test_name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Roboto', sans-serif; background-color: #f5f5f5; padding: 40px 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header h1 { color: #333; margin-bottom: 10px; }
+        .status { display: inline-block; padding: 5px 15px; border-radius: 20px; font-size: 14px; font-weight: 500; }
+        .status.active { background: #4caf50; color: white; }
+        .status.inactive { background: #f44336; color: white; }
+        .variants-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; }
+        .variant-card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: relative; }
+        .variant-card.winner { border: 3px solid #4caf50; }
+        .variant-card.winner::after { content: '🏆 WINNER'; position: absolute; top: 15px; right: 15px; background: #4caf50; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+        .variant-card h2 { color: #333; margin-bottom: 20px; font-size: 24px; }
+        .metric { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #eee; }
+        .metric:last-child { border-bottom: none; }
+        .metric-label { color: #666; font-weight: 500; }
+        .metric-value { color: #333; font-weight: 700; font-size: 18px; }
+        .metric-value.highlight { color: #1b68d2; font-size: 28px; }
+        .refresh-button { background: #1b68d2; color: white; border: none; padding: 15px 30px; border-radius: 5px; font-size: 16px; cursor: pointer; margin-top: 20px; }
+        .refresh-button:hover { background: #1557b8; }
+        .winner-announcement { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .winner-announcement h2 { font-size: 32px; margin-bottom: 15px; }
+        .winner-announcement p { font-size: 18px; opacity: 0.9; }
+        .insufficient-data { background: #ff9800; color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 30px; }
+        @media (max-width: 768px) { .variants-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>A/B Test Results: {{ test_name }}</h1>
+            <span class="status {{ 'active' if test_enabled else 'inactive' }}">
+                {{ 'ACTIVE' if test_enabled else 'INACTIVE' }}
+            </span>
+            <button class="refresh-button" onclick="location.reload()">Refresh Results</button>
+        </div>
+
+        {% if winner == 'insufficient_data' %}
+        <div class="insufficient-data">
+            <h3>⚠️ Insufficient Data</h3>
+            <p>Need at least 50 impressions per variant for reliable results</p>
+        </div>
+        {% endif %}
+
+        <div class="variants-container">
+            <!-- Variant A -->
+            <div class="variant-card {{ 'winner' if winner == 'a' else '' }}">
+                <h2>Variant A (Control)</h2>
+                <div class="metric">
+                    <span class="metric-label">Impressions</span>
+                    <span class="metric-value">{{ variant_a.impressions }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Clicks</span>
+                    <span class="metric-value">{{ variant_a.clicks }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Click Rate</span>
+                    <span class="metric-value">{{ variant_a.click_rate }}%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Conversions</span>
+                    <span class="metric-value">{{ variant_a.conversions }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Conversion Rate</span>
+                    <span class="metric-value highlight">{{ variant_a.conversion_rate }}%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Exit Popup Shows</span>
+                    <span class="metric-value">{{ variant_a.exit_popup_shows }}</span>
+                </div>
+            </div>
+
+            <!-- Variant B -->
+            <div class="variant-card {{ 'winner' if winner == 'b' else '' }}">
+                <h2>Variant B (Treatment)</h2>
+                <div class="metric">
+                    <span class="metric-label">Impressions</span>
+                    <span class="metric-value">{{ variant_b.impressions }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Clicks</span>
+                    <span class="metric-value">{{ variant_b.clicks }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Click Rate</span>
+                    <span class="metric-value">{{ variant_b.click_rate }}%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Conversions</span>
+                    <span class="metric-value">{{ variant_b.conversions }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Conversion Rate</span>
+                    <span class="metric-value highlight">{{ variant_b.conversion_rate }}%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Exit Popup Shows</span>
+                    <span class="metric-value">{{ variant_b.exit_popup_shows }}</span>
+                </div>
+            </div>
+        </div>
+
+        {% if winner == 'a' %}
+        <div class="winner-announcement">
+            <h2>🎉 Variant A Wins!</h2>
+            <p>Variant A (Control) has a higher conversion rate</p>
+            <p style="margin-top: 10px; font-size: 14px;">
+                To deploy the winner: Set AB_TEST_ENABLED = False in config.py
+            </p>
+        </div>
+        {% elif winner == 'b' %}
+        <div class="winner-announcement">
+            <h2>🎉 Variant B Wins!</h2>
+            <p>Variant B (Treatment) has a higher conversion rate</p>
+            <p style="margin-top: 10px; font-size: 14px;">
+                To deploy: Set AB_TEST_ENABLED = False and update default template
+            </p>
+        </div>
+        {% elif winner == 'tie' %}
+        <div class="winner-announcement" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            <h2>🤝 It's a Tie!</h2>
+            <p>Both variants have identical conversion rates</p>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EGuideSearches - Find Manuals Online</title>
+
+    <!-- Google Tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ google_tag_id() }}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '{{ google_tag_id() }}');
+    </script>
+
+    <!-- A/B Test Script (must load first) -->
+    <script src="{{ url_for('static', filename='js/ab-test.js') }}"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #eff5f4;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'%3E%3Cdefs%3E%3ClinearGradient id='teal-gradient' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23134e4a;stop-opacity:1' /%3E%3Cstop offset='50%25' style='stop-color:%23155e75;stop-opacity:0.8' /%3E%3Cstop offset='100%25' style='stop-color:%23134e4a;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23teal-gradient)' /%3E%3Cg opacity='0.3'%3E%3Cpolygon points='0,0 300,200 0,400' fill='%23ffffff' opacity='0.1'/%3E%3Cpolygon points='1200,0 900,300 1200,400' fill='%23ffffff' opacity='0.1'/%3E%3Cpolygon points='600,800 900,600 1200,800' fill='%23ffffff' opacity='0.1'/%3E%3Cpolygon points='0,800 300,600 600,800' fill='%23ffffff' opacity='0.1'/%3E%3C/g%3E%3C/svg%3E");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            min-height: 100vh;
+            width: 100%;
+            padding: 40px 20px 20px 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0px 0px 14px -6px rgba(0,0,0,0.5);
+            max-width: 800px;
+            width: 100%;
+            padding: 30px 40px 45px 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            min-height: 600px;
+        }
+
+        .logo {
+            max-width: 280px;
+            height: auto;
+        }
+
+        .main-title {
+            font-size: 44px;
+            font-weight: 700;
+            color: #202125;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            font-weight: 400;
+            color: #727171;
+            text-align: center;
+            line-height: 20px;
+            max-width: 450px;
+            margin: -10px auto 25px auto;
+        }
+
+        #images-section {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            width: 100%;
+            margin-bottom: 25px;
+        }
+
+        .image-container {
+            width: 200px;
+            height: 112px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .result-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            cursor: pointer;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        .result-image:hover {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
+
+        .image-placeholder {
+            width: 200px;
+            height: 112px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 12px;
+        }
+
+        .loading-skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border: none;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .main-cta {
+            background: #1b68d2;
+            color: white;
+            text-decoration: none;
+            padding: 25px 50px;
+            border-radius: 38px;
+            font-size: 25px;
+            font-weight: 500;
+            text-align: center;
+            display: inline-block;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-width: 375px;
+            width: 100%;
+        }
+
+        .main-cta:hover {
+            background: #1557b8;
+            transform: scale(0.95);
+        }
+
+        .disclaimer {
+            font-size: 12px;
+            color: #999;
+            text-align: center;
+            margin-top: 10px;
+            max-width: 375px;
+        }
+
+        .disclaimer a {
+            color: #999;
+            text-decoration: underline;
+        }
+
+        .store-badge {
+            width: auto;
+            height: auto;
+            max-width: none;
+            margin-top: 20px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        @media (max-width: 768px) {
+            .store-badge {
+                max-width: 200px;
+            }
+        }
+
+        /* Exit Popup Styles */
+        .exit-popup-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .exit-popup-backdrop.show {
+            display: flex;
+        }
+
+        .exit-popup-card {
+            background: white;
+            border-radius: 24px;
+            max-width: 500px;
+            width: 90%;
+            padding: 40px;
+            animation: slideIn 0.4s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: scale(0.7) translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .exit-popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .exit-popup-header h2 {
+            font-size: 32px;
+            color: #202125;
+        }
+
+        .exit-popup-close {
+            background: none;
+            border: none;
+            font-size: 32px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .exit-popup-subtitle {
+            font-size: 20px;
+            color: #202125;
+            margin-bottom: 15px;
+        }
+
+        .exit-popup-description {
+            font-size: 16px;
+            color: #727171;
+            line-height: 1.5;
+        }
+
+        .exit-popup-cta {
+            background: #1b68d2;
+            color: white;
+            text-decoration: none;
+            padding: 18px 40px;
+            border-radius: 30px;
+            font-size: 20px;
+            font-weight: 500;
+            display: inline-block;
+            margin-top: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(27, 104, 210, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 0 15px rgba(27, 104, 210, 0);
+            }
+        }
+
+        footer {
+            text-align: center;
+            color: #fff;
+            margin-top: 30px;
+            width: 100%;
+        }
+
+        footer .copy {
+            color: #fff;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        footer a {
+            color: #fff;
+            text-decoration: underline;
+            margin: 0 5px;
+        }
+
+        footer a:hover {
+            text-decoration: none;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .card {
+                padding: 30px 20px;
+                gap: 20px;
+            }
+            .main-title {
+                font-size: 32px;
+            }
+            .subtitle {
+                font-size: 18px;
+            }
+            .main-cta {
+                font-size: 20px;
+                padding: 20px 40px;
+            }
+            .image-container, .image-placeholder {
+                width: 150px;
+                height: 84px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 20px;
+                gap: 15px;
+            }
+            .main-title {
+                font-size: 28px;
+            }
+            .main-cta {
+                max-width: 350px;
+                font-size: 18px;
+            }
+            #images-section {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- Logo -->
+            <img src="/static/logo.png" class="logo" alt="EGuideSearches">
+
+            <!-- Main Title -->
+            <h1 class="main-title">Get {{ keyword|title }} Free</h1>
+
+            <!-- Subtitle -->
+            <p class="subtitle">download novaview for ambient viewing experiences including Free {{ keyword|title }}</p>
+
+            <!-- Images Section (loads asynchronously) -->
+            {% if show_images %}
+            <div id="images-section" style="display: none;">
+                <!-- Placeholder skeletons shown while loading -->
+                <div class="image-placeholder loading-skeleton">Loading...</div>
+                <div class="image-placeholder loading-skeleton">Loading...</div>
+                <div class="image-placeholder loading-skeleton">Loading...</div>
+            </div>
+            {% endif %}
+
+            <!-- Main CTA Button (browser-specific) -->
+            {% if browser_type == 'edge' %}
+                <a href="{{ edge_store_url() }}{% if gclid %}?gclid={{ gclid }}{% endif %}"
+                   class="main-cta" id="ctaButton">
+                    Add to Edge - It's Free
+                </a>
+            {% elif browser_type == 'chrome' %}
+                <a href="{{ chrome_store_url() }}{% if gclid %}?gclid={{ gclid }}{% endif %}"
+                   class="main-cta" id="ctaButton">
+                    Add to Chrome - It's Free
+                </a>
+            {% else %}
+                <a href="{{ chrome_store_url() }}{% if gclid %}?gclid={{ gclid }}{% endif %}"
+                   class="main-cta" id="ctaButton">
+                    Get Chrome Extension
+                </a>
+            {% endif %}
+
+            <!-- Disclaimer Text -->
+            <p class="disclaimer">To learn more, see our <a href="/eula">EULA</a> and <a href="/privacy">Privacy Policy</a>.</p>
+        </div>
+
+        <!-- Browser Store Badge (outside card) -->
+        <img src="/static/{% if browser_type == 'edge' %}edge-icon.png{% else %}chrome-icon.png{% endif %}"
+             class="store-badge"
+             alt="Available in the {% if browser_type == 'edge' %}Edge Add-ons Store{% else %}Chrome Web Store{% endif %}"
+             onerror="this.style.display='none'">
+    </div>
+
+    <!-- Exit Intent Popup Modal -->
+    <div id="exit-intent-modal" class="exit-popup-backdrop">
+        <div class="exit-popup-card">
+            <div class="exit-popup-header">
+                <h2>Wait!</h2>
+                <button class="exit-popup-close">&times;</button>
+            </div>
+            <p class="exit-popup-subtitle">Are you sure you want to leave?</p>
+            <p class="exit-popup-description">
+                We'd hate for you to miss out on access to the largest online library of manuals.
+            </p>
+            <a href="#" class="exit-popup-cta" id="exitPopupCta">
+                Yes, Add to {% if browser_type == 'edge' %}Edge{% else %}Chrome{% endif %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="copy">&copy; 2025 EGuideSearches. All Rights Reserved.</div>
+        <a href="/about">ABOUT US</a> |
+        <a href="/privacy">PRIVACY POLICY</a> |
+        <a href="/copyright">COPYRIGHT POLICY</a> |
+        <a href="/terms">TERMS of USE</a> |
+        <a href="/uninstall">UNINSTALL</a> |
+        <a href="/contact">CONTACT US</a>
+    </footer>
+
+    <!-- Exit Intent JavaScript -->
+    <script src="/static/js/exit-intent.js"></script>
+
+    <!-- Inline JavaScript for Image Loading and Tracking -->
+    <script>
+        // Template variables
+        const keyword = '{{ keyword }}';
+        const showImages = {{ 'true' if show_images else 'false' }};
+        const hasKwParam = {{ 'true' if request.args.get('kw') else 'false' }};
+        const gclid = '{{ gclid }}' || '';
+        const browserType = '{{ browser_type }}';
+
+        // Store URL based on browser type
+        {% if browser_type == 'edge' %}
+        const storeUrl = '{{ edge_store_url() }}';
+        {% else %}
+        const storeUrl = '{{ chrome_store_url() }}';
+        {% endif %}
+
+        // Make store URL available globally for exit popup
+        window.chromeStoreUrl = storeUrl;
+
+        // Store GCLID in localStorage for attribution
+        if (gclid) {
+            localStorage.setItem('gclid', gclid);
+            console.log('GCLID stored:', gclid);
+        }
+
+        // Get stored GCLID
+        function getStoredGclid() {
+            return localStorage.getItem('gclid') || gclid || '';
+        }
+
+        // Load images asynchronously
+        async function loadImages(searchKeyword) {
+            try {
+                const response = await fetch(`/api/search?kw=${encodeURIComponent(searchKeyword)}`);
+                const data = await response.json();
+
+                // Check cache status from API response
+                if (data.cache_status === 'HIT' && data.images && data.images.length > 0) {
+                    // Images are cached - show placeholders then display images
+                    showPlaceholders();
+                    setTimeout(() => displayImages(data.images), 300);
+                } else if (data.cache_status === 'MISS') {
+                    // Images are being downloaded in background - keep section hidden
+                    // They will be cached for the NEXT visit
+                    console.log('Images downloading in background - will be available on next visit');
+                    hideImagesSection();
+                } else {
+                    // No images available
+                    hideImagesSection();
+                }
+            } catch (error) {
+                console.error('Error loading images:', error);
+                hideImagesSection();
+            }
+        }
+
+        // Show placeholders (called when images are cached)
+        function showPlaceholders() {
+            const container = document.getElementById('images-section');
+            if (container) {
+                container.style.display = 'flex';
+            }
+        }
+
+        // Display images
+        function displayImages(images) {
+            const container = document.getElementById('images-section');
+            if (!container) return;
+
+            container.innerHTML = '';
+            container.style.display = 'flex';
+
+            images.forEach((image, index) => {
+                const imgContainer = document.createElement('div');
+                imgContainer.className = 'image-container';
+
+                const img = document.createElement('img');
+                img.src = image.thumbnail || image.url;
+                img.alt = image.title || `Image ${index + 1}`;
+                img.className = 'result-image';
+
+                // Make image clickable - same behavior as CTA button
+                img.addEventListener('click', function() {
+                    const trackedGclid = getStoredGclid();
+                    const finalStoreUrl = trackedGclid ? `${storeUrl}?gclid=${trackedGclid}` : storeUrl;
+
+                    // Track image click
+                    fetch('/api/track/click', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            button_id: `image-${index + 1}`,
+                            keyword: keyword,
+                            gclid: trackedGclid,
+                            variant: window.abTestVariant,  // NEW: Add variant
+                            timestamp: new Date().toISOString()
+                        })
+                    }).catch(err => console.log('Tracking error:', err));
+
+                    // Open store in new tab
+                    const chromeStoreTab = window.open(finalStoreUrl, '_blank');
+
+                    // Start exit intent monitoring
+                    if (chromeStoreTab && window.exitIntentPopup) {
+                        window.exitIntentPopup.startMonitoring(chromeStoreTab);
+                    }
+                });
+
+                // Error handling with fallback
+                img.onerror = function() {
+                    if (this.src === image.thumbnail && image.url) {
+                        this.src = image.url;
+                    } else {
+                        this.parentElement.innerHTML = '<div class="image-placeholder">Failed to load</div>';
+                    }
+                };
+
+                imgContainer.appendChild(img);
+                container.appendChild(imgContainer);
+            });
+        }
+
+        // Hide images section
+        function hideImagesSection() {
+            const section = document.getElementById('images-section');
+            if (section) {
+                section.style.display = 'none';
+            }
+        }
+
+        // CTA Button Click Handler
+        document.getElementById('ctaButton').addEventListener('click', function(e) {
+            e.preventDefault(); // Prevent default link behavior
+
+            const storeUrl = this.href;
+            const trackedGclid = getStoredGclid();
+
+            console.log('CTA clicked - opening store in new tab');
+
+            // Track click event
+            fetch('/api/track/click', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    button_id: 'main-cta',
+                    keyword: keyword,
+                    gclid: trackedGclid,
+                    variant: window.abTestVariant,  // NEW: Add variant
+                    timestamp: new Date().toISOString()
+                })
+            }).catch(err => console.log('Tracking error:', err));
+
+            // Open store in new tab
+            const chromeStoreTab = window.open(storeUrl, '_blank');
+
+            // Start exit intent monitoring
+            if (chromeStoreTab && window.exitIntentPopup) {
+                console.log('Starting exit intent monitoring...');
+                window.exitIntentPopup.startMonitoring(chromeStoreTab);
+            } else {
+                console.log('Exit intent popup not available or tab blocked');
+            }
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load images if conditions met
+            if (showImages && hasKwParam) {
+                loadImages(keyword);
+            }
+
+            // Setup exit popup event listeners
+            const exitPopupCloseBtn = document.querySelector('.exit-popup-close');
+            const exitPopupCta = document.getElementById('exitPopupCta');
+            const exitPopupBackdrop = document.getElementById('exit-intent-modal');
+
+            // Close button click
+            if (exitPopupCloseBtn) {
+                exitPopupCloseBtn.addEventListener('click', function() {
+                    if (window.exitIntentPopup) {
+                        window.exitIntentPopup.closePopup();
+                    }
+                });
+            }
+
+            // CTA button click
+            if (exitPopupCta) {
+                exitPopupCta.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (window.exitIntentPopup) {
+                        window.exitIntentPopup.handlePopupCTA();
+                    }
+                });
+            }
+
+            // Backdrop click to close
+            if (exitPopupBackdrop) {
+                exitPopupBackdrop.addEventListener('click', function(e) {
+                    if (e.target === exitPopupBackdrop) {
+                        if (window.exitIntentPopup) {
+                            window.exitIntentPopup.closePopup();
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+
+    <!-- A/B Test Variant Tracking -->
+    <script>
+        // Make variant available to all scripts
+        window.abTestVariant = '{{ variant }}';
+        window.abTestEnabled = {{ 'true' if ab_test_enabled else 'false' }};
+    </script>
+</body>
+</html>
