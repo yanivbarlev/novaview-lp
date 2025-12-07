@@ -8,18 +8,15 @@
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id={{ google_tag_id() }}"></script>
     <script>
+      // Initialize dataLayer FIRST (before gtag.js loads)
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
       gtag('config', '{{ google_tag_id() }}');
 
-      // Track NovaView installation conversion
-      gtag('event', 'conversion', {
-          'send_to': '{{ google_tag_id() }}/novaview_install',
-          'value': 1.0,
-          'currency': 'USD'
-      });
+      // Log for debugging
+      console.log('Google Tag initialized with ID:', '{{ google_tag_id() }}');
+      console.log('dataLayer available:', typeof window.dataLayer !== 'undefined');
     </script>
 
     <style>
@@ -230,18 +227,36 @@
         const urlParams = new URLSearchParams(window.location.search);
         const gclid = urlParams.get('gclid');
 
-        // If gclid is present, add it to conversion tracking
+        console.log('Thank You Page - GCLID from URL:', gclid || 'none');
+        console.log('Thank You Page - dataLayer exists:', typeof window.dataLayer !== 'undefined');
+        console.log('Thank You Page - gtag function exists:', typeof gtag !== 'undefined');
+
+        // Fire conversion event with GCLID if available
+        const conversionData = {
+            'send_to': '{{ google_tag_id() }}/novaview_install',
+            'value': 1.0,
+            'currency': 'USD'
+        };
+
+        // Add transaction_id if GCLID present
         if (gclid) {
-            gtag('event', 'conversion', {
-                'send_to': '{{ google_tag_id() }}/novaview_install',
-                'value': 1.0,
-                'currency': 'USD',
-                'transaction_id': gclid
-            });
+            conversionData.transaction_id = gclid;
+            console.log('Thank You Page - Firing conversion WITH GCLID:', gclid);
+        } else {
+            console.log('Thank You Page - Firing conversion WITHOUT GCLID');
+        }
+
+        // Fire the conversion event
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'conversion', conversionData);
+            console.log('Thank You Page - Conversion event fired successfully');
+        } else {
+            console.error('Thank You Page - gtag function not available!');
         }
 
         // Redirect to YouTube channel after 3 seconds (gives time for conversion pixel to fire)
         setTimeout(function() {
+            console.log('Thank You Page - Redirecting to YouTube...');
             window.location.href = 'https://www.youtube.com/@TechInsiderNextGen?sub_confirmation=1';
         }, 3000);
     </script>
