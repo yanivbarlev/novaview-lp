@@ -32,11 +32,27 @@ app = Flask(__name__,
             template_folder=os.path.join(_current_dir, 'templates'),
             static_folder=os.path.join(_current_dir, 'static'))
 
-# Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Setup logging - write to both console and file
+log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
+# Configure root logger to write to file
+log_file = os.path.join(_current_dir, 'app.log')
+file_handler = logging.FileHandler(log_file, encoding='utf-8')
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(logging.Formatter(log_format))
+
+# Configure console handler
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(logging.Formatter(log_format))
+
+# Configure root logger
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.addHandler(file_handler)
+root_logger.addHandler(console_handler)
+
+# Get logger for this app
 logger = logging.getLogger(__name__)
 
 # Ensure directories exist
@@ -493,7 +509,7 @@ def ab_dashboard():
     try:
         # Read last 5000 lines from log file for analysis
         log_lines = []
-        log_file = 'app.log'  # Adjust path if logs are stored elsewhere
+        log_file = os.path.join(_current_dir, 'app.log')  # Use absolute path
 
         if os.path.exists(log_file):
             with open(log_file, 'r', encoding='utf-8') as f:
