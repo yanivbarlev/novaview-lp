@@ -143,13 +143,18 @@ class ExitIntentPopup {
         // Track CTA click from popup
         this.trackEvent('exit_popup_cta_clicked');
 
-        // Get stored gclid for tracking
+        // Get stored gclid and variant for tracking
         const gclid = localStorage.getItem('gclid') || '';
+        const variant = window.abTestVariant || '';
 
-        // Build Chrome Web Store URL with tracking
+        // Build Chrome Web Store URL with tracking parameters
         let storeUrl = window.chromeStoreUrl;
-        if (gclid) {
+        if (gclid && variant) {
+            storeUrl += `?gclid=${gclid}&variant=${variant}`;
+        } else if (gclid) {
             storeUrl += `?gclid=${gclid}`;
+        } else if (variant) {
+            storeUrl += `?variant=${variant}`;
         }
 
         // Close popup and open Chrome Web Store

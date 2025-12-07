@@ -374,17 +374,17 @@
 
             <!-- Main CTA Button (browser-specific) -->
             {% if browser_type == 'edge' %}
-                <a href="{{ edge_store_url() }}{% if gclid %}?gclid={{ gclid }}{% endif %}"
+                <a href="{{ edge_store_url() }}{% if gclid %}?gclid={{ gclid }}{% if variant %}&variant={{ variant }}{% endif %}{% elif variant %}?variant={{ variant }}{% endif %}"
                    class="main-cta" id="ctaButton">
                     Add to Edge - It's Free
                 </a>
             {% elif browser_type == 'chrome' %}
-                <a href="{{ chrome_store_url() }}{% if gclid %}?gclid={{ gclid }}{% endif %}"
+                <a href="{{ chrome_store_url() }}{% if gclid %}?gclid={{ gclid }}{% if variant %}&variant={{ variant }}{% endif %}{% elif variant %}?variant={{ variant }}{% endif %}"
                    class="main-cta" id="ctaButton">
                     Add to Chrome - It's Free
                 </a>
             {% else %}
-                <a href="{{ chrome_store_url() }}{% if gclid %}?gclid={{ gclid }}{% endif %}"
+                <a href="{{ chrome_store_url() }}{% if gclid %}?gclid={{ gclid }}{% if variant %}&variant={{ variant }}{% endif %}{% elif variant %}?variant={{ variant }}{% endif %}"
                    class="main-cta" id="ctaButton">
                     Get Chrome Extension
                 </a>
@@ -516,7 +516,17 @@
                 // Make image clickable - same behavior as CTA button
                 img.addEventListener('click', function() {
                     const trackedGclid = getStoredGclid();
-                    const finalStoreUrl = trackedGclid ? `${storeUrl}?gclid=${trackedGclid}` : storeUrl;
+                    const trackedVariant = window.abTestVariant || '';
+
+                    // Build URL with gclid and variant
+                    let finalStoreUrl = storeUrl;
+                    if (trackedGclid && trackedVariant) {
+                        finalStoreUrl = `${storeUrl}?gclid=${trackedGclid}&variant=${trackedVariant}`;
+                    } else if (trackedGclid) {
+                        finalStoreUrl = `${storeUrl}?gclid=${trackedGclid}`;
+                    } else if (trackedVariant) {
+                        finalStoreUrl = `${storeUrl}?variant=${trackedVariant}`;
+                    }
 
                     // Track image click
                     fetch('/api/track/click', {
