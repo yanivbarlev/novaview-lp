@@ -5,6 +5,7 @@ Clean, minimal Flask app with only essential routes
 
 import os
 import logging
+import threading
 from datetime import datetime
 from flask import Flask, render_template, request, send_from_directory, jsonify, redirect
 from dotenv import load_dotenv
@@ -111,7 +112,55 @@ def landing_page():
                          browser_type=browser_type)
 
 
-# === ROUTE 2: Image Search API ===
+# === ROUTE 2: StackFree Landing Page ===
+@app.route('/stackfree')
+def stackfree_landing():
+    """
+    StackFree landing page (identical logic to main landing page)
+
+    URL Parameters:
+        kw (str): Keyword for image search (default: 'trending')
+        img (str): 'true' to show images (default: false)
+        gclid (str): Google Click ID for conversion attribution
+    """
+    # Extract and sanitize parameters
+    keyword = request.args.get('kw', 'trending').strip()
+    show_images = request.args.get('img', '').lower() == 'true'
+    gclid = request.args.get('gclid', '')
+
+    # Sanitize keyword (max 100 chars)
+    if not keyword or len(keyword) > 100:
+        keyword = 'trending'
+
+    # Conditional image display logic
+    # Only show images if BOTH img=true AND kw parameter exist
+    has_kw_param = request.args.get('kw') is not None
+    show_images = show_images and has_kw_param
+
+    # Browser detection from User-Agent
+    user_agent = request.headers.get('User-Agent', 'Unknown')
+    browser_type = detect_browser_type(user_agent)
+
+    # Get client IP (respects proxy headers)
+    client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
+
+    # Logging (critical for debugging)
+    logger.info(
+        f'STACKFREE_PAGE keyword="{keyword}" gclid="{gclid}" '
+        f'show_images={show_images} browser="{browser_type}" '
+        f'user_agent="{user_agent[:100]}" ip="{client_ip}"'
+    )
+
+    # Render template with NO server-side image fetching
+    # Images will load via JavaScript AJAX after page renders
+    return render_template('landing.html',
+                         keyword=keyword,
+                         gclid=gclid,
+                         show_images=show_images,
+                         browser_type=browser_type)
+
+
+# === ROUTE 3: Image Search API ===
 @app.route('/api/search')
 def api_search():
     """
@@ -142,22 +191,45 @@ def api_search():
                f'user_agent="{request.headers.get("User-Agent", "Unknown")[:100]}"')
 
     try:
-        # Search for images (uses intelligent caching)
-        images = image_service.search_images(keyword, count=3)
-
-        # Determine cache status
+        # Check if images are already cached
         keyword_base = sanitize_keyword_for_filename(keyword)
         from image_service import check_all_images_cached
         cache_hit = check_all_images_cached(keyword_base, 3)
 
-        return jsonify({
-            'keyword': keyword,
-            'images': images,
-            'count': len(images),
-            'cached': cache_hit,
-            'cache_status': 'HIT' if cache_hit else 'MISS',
-            'api_call_made': not cache_hit
-        })
+        if cache_hit:
+            # Images are cached - return them immediately
+            images = image_service.search_images(keyword, count=3)
+            return jsonify({
+                'keyword': keyword,
+                'images': images,
+                'count': len(images),
+                'cached': True,
+                'cache_status': 'HIT',
+                'api_call_made': False
+            })
+        else:
+            # Images not cached - trigger background download and return empty
+            def background_download():
+                try:
+                    logger.info(f'BACKGROUND_DOWNLOAD_START keyword="{keyword}"')
+                    image_service.search_images(keyword, count=3)
+                    logger.info(f'BACKGROUND_DOWNLOAD_COMPLETE keyword="{keyword}"')
+                except Exception as e:
+                    logger.error(f'BACKGROUND_DOWNLOAD_ERROR keyword="{keyword}" error="{str(e)}"')
+
+            # Start background thread
+            thread = threading.Thread(target=background_download, daemon=True)
+            thread.start()
+
+            # Return empty response immediately
+            return jsonify({
+                'keyword': keyword,
+                'images': [],
+                'count': 0,
+                'cached': False,
+                'cache_status': 'DOWNLOADING',
+                'api_call_made': True
+            })
 
     except Exception as e:
         logger.error(f'API_SEARCH_ERROR keyword="{keyword}" error="{str(e)}"')
@@ -168,7 +240,7 @@ def api_search():
         }), 500
 
 
-# === ROUTE 3: Image Serving ===
+# === ROUTE 4: Image Serving ===
 @app.route('/image/<filename>')
 def serve_image(filename):
     """
@@ -187,7 +259,7 @@ def serve_image(filename):
         return 'Image not found', 404
 
 
-# === ROUTE 4: CTA Click Tracking ===
+# === ROUTE 5: CTA Click Tracking ===
 @app.route('/api/track/click', methods=['POST'])
 def track_click():
     """
@@ -224,7 +296,7 @@ def track_click():
     })
 
 
-# === ROUTE 5: Exit Popup Tracking ===
+# === ROUTE 6: Exit Popup Tracking ===
 @app.route('/api/track/exit-popup', methods=['POST'])
 def track_exit_popup():
     """
@@ -258,7 +330,7 @@ def track_exit_popup():
     return jsonify({'status': 'success'})
 
 
-# === ROUTE 6: Thank You Page (Local) ===
+# === ROUTE 7: Thank You Page (Local) ===
 @app.route('/thankyou-downloadmanager.html')
 def thankyou_downloadmanager():
     """
@@ -284,7 +356,7 @@ def thankyou_downloadmanager():
     return render_template('thankyou.html', gclid=gclid, source=source)
 
 
-# === ROUTE 7: Post-Install Redirect (Production) ===
+# === ROUTE 8: Post-Install Redirect (Production) ===
 @app.route('/post_install/')
 def post_install():
     """

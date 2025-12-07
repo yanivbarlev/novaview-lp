@@ -31,6 +31,10 @@ SUPPORTED_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp')
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 GOOGLE_CX = os.getenv('GOOGLE_CX')
 
+# Backup Google API Configuration (for rate limit fallback)
+GOOGLE_API_KEY_BACKUP = os.getenv('GOOGLE_API_KEY_BACKUP')
+GOOGLE_CX_BACKUP = os.getenv('GOOGLE_CX_BACKUP')
+
 # Application metadata
 APP_NAME = 'EGuideSearches'
 APP_DESCRIPTION = 'Easily find manuals online'

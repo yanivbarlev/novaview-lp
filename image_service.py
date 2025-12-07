@@ -16,6 +16,8 @@ from PIL import Image
 from config import (
     GOOGLE_API_KEY,
     GOOGLE_CX,
+    GOOGLE_API_KEY_BACKUP,
+    GOOGLE_CX_BACKUP,
     FINAL_IMAGES_DIR,
     CANDIDATES_CACHE_DIR,
     TARGET_FILE_SIZE,
@@ -374,16 +376,17 @@ class ImageSearchService:
         Returns:
             List of image dictionaries with url, thumbnail, title, source
         """
-        if not GOOGLE_API_KEY or not GOOGLE_CX:
-            logger.error("Google API credentials not configured")
-            return []
-
         keyword_base = sanitize_keyword_for_filename(keyword)
 
-        # Phase 1: Check if all final images already exist
+        # Phase 1: Check if all final images already exist (works without API credentials)
         if check_all_images_cached(keyword_base, count):
             logger.info(f"Cache hit: All images exist for '{keyword}'")
             return self._get_final_images(keyword_base, count)
+
+        # Only check API credentials if we need to fetch new images
+        if not GOOGLE_API_KEY or not GOOGLE_CX:
+            logger.error("Google API credentials not configured - cannot fetch new images")
+            return []
 
         # Phase 2: Try to reuse existing candidates
         existing_candidates = list_valid_cached_candidates(keyword_base)
@@ -443,7 +446,13 @@ class ImageSearchService:
         try:
             # Request 10 images for selection (always request more than needed)
             request_num = max(count, 10)
-            params = {
+
+            # Try primary API first, then fallback to backup if rate limited
+            urls = []
+            api_used = 'primary'
+
+            # Primary API attempt
+            params_primary = {
                 'key': GOOGLE_API_KEY,
                 'cx': GOOGLE_CX,
                 'q': keyword,
@@ -453,18 +462,54 @@ class ImageSearchService:
             }
 
             api_start_time = time.time()
-            response = requests.get('https://www.googleapis.com/customsearch/v1',
-                                   params=params, timeout=20)
-            api_response_time = round(time.time() - api_start_time, 3)
-            response.raise_for_status()
+            try:
+                response = requests.get('https://www.googleapis.com/customsearch/v1',
+                                       params=params_primary, timeout=20)
+                api_response_time = round(time.time() - api_start_time, 3)
+                response.raise_for_status()
 
-            data = response.json()
-            urls = [item.get('link') for item in data.get('items', []) if item.get('link')]
+                data = response.json()
+                urls = [item.get('link') for item in data.get('items', []) if item.get('link')]
 
-            # Log API call metrics
-            logger.info(f'GOOGLE_API_CALL keyword="{keyword}" requested={request_num} '
-                       f'urls_received={len(urls)} response_time={api_response_time}s '
-                       f'quota_usage=1 status_code={response.status_code}')
+                # Log successful primary API call
+                logger.info(f'GOOGLE_API_CALL keyword="{keyword}" requested={request_num} '
+                           f'urls_received={len(urls)} response_time={api_response_time}s '
+                           f'quota_usage=1 status_code={response.status_code} api=primary')
+
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 429:
+                    # Rate limit hit on primary - try backup
+                    logger.warning(f'PRIMARY_API_RATE_LIMIT keyword="{keyword}" - trying backup API')
+
+                    if GOOGLE_API_KEY_BACKUP and GOOGLE_CX_BACKUP:
+                        params_backup = {
+                            'key': GOOGLE_API_KEY_BACKUP,
+                            'cx': GOOGLE_CX_BACKUP,
+                            'q': keyword,
+                            'searchType': 'image',
+                            'num': request_num,
+                            'safe': 'active'
+                        }
+
+                        backup_start_time = time.time()
+                        response = requests.get('https://www.googleapis.com/customsearch/v1',
+                                               params=params_backup, timeout=20)
+                        api_response_time = round(time.time() - backup_start_time, 3)
+                        response.raise_for_status()
+
+                        data = response.json()
+                        urls = [item.get('link') for item in data.get('items', []) if item.get('link')]
+                        api_used = 'backup'
+
+                        # Log successful backup API call
+                        logger.info(f'GOOGLE_API_CALL keyword="{keyword}" requested={request_num} '
+                                   f'urls_received={len(urls)} response_time={api_response_time}s '
+                                   f'quota_usage=1 status_code={response.status_code} api=backup')
+                    else:
+                        logger.error(f'BACKUP_API_NOT_CONFIGURED keyword="{keyword}"')
+                        raise
+                else:
+                    raise
 
             if not urls:
                 logger.warning(f'GOOGLE_API_NO_RESULTS keyword="{keyword}" requested={request_num}')
