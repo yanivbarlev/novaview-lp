@@ -26,3 +26,11 @@ Thumbs.db
 
 # Cache
 images/cache/
+images/*.webp
+images/*.jpg
+images/*.jpeg
+images/*.png
+
+# Deployment
+.deployment/
+!.deployment/README.md
