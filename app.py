@@ -521,7 +521,7 @@ def ab_dashboard():
 
         metrics = parser.parse_logs(log_lines)
         results = parser.calculate_statistical_significance()
-        winner, _ = parser.get_winner(min_impressions=50)
+        winner, _ = parser.get_winner(min_impressions=10)
 
         # Get test history
         history = history_manager.get_history()
