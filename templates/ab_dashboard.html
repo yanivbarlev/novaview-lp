@@ -30,7 +30,34 @@
         .winner-announcement h2 { font-size: 32px; margin-bottom: 15px; }
         .winner-announcement p { font-size: 18px; opacity: 0.9; }
         .insufficient-data { background: #ff9800; color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 30px; }
-        @media (max-width: 768px) { .variants-container { grid-template-columns: 1fr; } }
+        .confidence-section { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .confidence-section h3 { color: #333; margin-bottom: 20px; font-size: 18px; }
+        .confidence-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .confidence-row:last-child { border-bottom: none; }
+        .confidence-label { color: #666; font-weight: 500; }
+        .confidence-value { color: #333; font-weight: 600; }
+        .significance-badge { background: #4caf50; color: white; padding: 8px 16px; border-radius: 20px; display: inline-block; font-size: 14px; font-weight: 600; margin-top: 15px; }
+        .significance-badge.not-significant { background: #ff9800; }
+        .reset-button { background: #f44336; color: white; border: none; padding: 12px 24px; border-radius: 5px; font-size: 16px; cursor: pointer; margin-top: 20px; }
+        .reset-button:hover { background: #da190b; }
+        .history-section { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .history-section h3 { color: #333; margin-bottom: 20px; font-size: 18px; }
+        .history-item { background: #f9f9f9; padding: 20px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #1b68d2; }
+        .history-item:last-child { margin-bottom: 0; }
+        .history-item h4 { color: #333; margin-bottom: 10px; }
+        .history-item p { color: #666; font-size: 14px; margin-bottom: 8px; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); }
+        .modal.show { display: block; }
+        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 30px; border: 1px solid #888; border-radius: 8px; width: 400px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .modal-header { font-size: 20px; font-weight: 700; margin-bottom: 20px; color: #333; }
+        .modal-input { width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; }
+        .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; }
+        .modal-button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
+        .modal-button.cancel { background: #ccc; color: #333; }
+        .modal-button.cancel:hover { background: #bbb; }
+        .modal-button.confirm { background: #f44336; color: white; }
+        .modal-button.confirm:hover { background: #da190b; }
+        @media (max-width: 768px) { .variants-container { grid-template-columns: 1fr; } .modal-content { width: 90%; } }
     </style>
 </head>
 <body>
@@ -110,6 +137,58 @@
             </div>
         </div>
 
+        <!-- Statistical Significance Section -->
+        <div class="confidence-section">
+            <h3>📊 Statistical Significance Analysis (95% Confidence)</h3>
+            <div class="confidence-row">
+                <span class="confidence-label">Variant A - Confidence Interval</span>
+                <span class="confidence-value">{{ variant_a.confidence_interval[0] }}% - {{ variant_a.confidence_interval[1] }}%</span>
+            </div>
+            <div class="confidence-row">
+                <span class="confidence-label">Variant A - Margin of Error</span>
+                <span class="confidence-value">±{{ variant_a.margin_of_error }}%</span>
+            </div>
+            <div class="confidence-row">
+                <span class="confidence-label">Variant B - Confidence Interval</span>
+                <span class="confidence-value">{{ variant_b.confidence_interval[0] }}% - {{ variant_b.confidence_interval[1] }}%</span>
+            </div>
+            <div class="confidence-row">
+                <span class="confidence-label">Variant B - Margin of Error</span>
+                <span class="confidence-value">±{{ variant_b.margin_of_error }}%</span>
+            </div>
+            <div class="confidence-row">
+                <span class="confidence-label">P-Value</span>
+                <span class="confidence-value">{{ "%.4f"|format(p_value) }}</span>
+            </div>
+            {% if is_significant %}
+            <span class="significance-badge">✓ STATISTICALLY SIGNIFICANT (p < 0.05)</span>
+            {% else %}
+            <span class="significance-badge not-significant">⚠ NOT SIGNIFICANT YET (p ≥ 0.05)</span>
+            {% endif %}
+            <button class="reset-button" onclick="openResetModal()">Reset Test & Archive Results</button>
+        </div>
+
+        <!-- Test History Section -->
+        {% if history %}
+        <div class="history-section">
+            <h3>📈 Test History</h3>
+            {% for test in history %}
+            <div class="history-item">
+                <h4>{{ test.name }}</h4>
+                <p><strong>Date:</strong> {{ test.timestamp[:10] }} {{ test.timestamp[11:19] }}</p>
+                <p><strong>Variant A Conversion Rate:</strong> {{ test.metrics.variant_a.conversion_rate }}%</p>
+                <p><strong>Variant B Conversion Rate:</strong> {{ test.metrics.variant_b.conversion_rate }}%</p>
+                <p><strong>P-Value:</strong> {{ "%.4f"|format(test.metrics.p_value) }}</p>
+                {% if test.metrics.is_significant %}
+                <p><span class="significance-badge" style="font-size: 12px;">✓ Significant</span></p>
+                {% else %}
+                <p><span class="significance-badge not-significant" style="font-size: 12px;">Not Significant</span></p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         {% if winner == 'a' %}
         <div class="winner-announcement">
             <h2>🎉 Variant A Wins!</h2>
@@ -133,5 +212,88 @@
         </div>
         {% endif %}
     </div>
+
+    <!-- Reset Modal -->
+    <div id="resetModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Archive & Reset Test</div>
+            <div style="margin-bottom: 20px; color: #666;">
+                <p>Enter a name for this test to archive its results:</p>
+            </div>
+            <input type="text" id="testNameInput" class="modal-input" placeholder="e.g., Test 1 - Button Color" autofocus>
+            <div class="modal-buttons">
+                <button class="modal-button cancel" onclick="closeResetModal()">Cancel</button>
+                <button class="modal-button confirm" onclick="confirmReset()">Archive & Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openResetModal() {
+            document.getElementById('resetModal').classList.add('show');
+            document.getElementById('testNameInput').value = '';
+            document.getElementById('testNameInput').focus();
+        }
+
+        function closeResetModal() {
+            document.getElementById('resetModal').classList.remove('show');
+        }
+
+        function confirmReset() {
+            const testName = document.getElementById('testNameInput').value.trim();
+            if (!testName) {
+                alert('Please enter a name for this test');
+                return;
+            }
+
+            // Disable button to prevent double-click
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = 'Archiving...';
+
+            fetch('/admin/api/reset-test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    test_name: testName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Test archived successfully as "' + testName + '"');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                    button.disabled = false;
+                    button.textContent = 'Archive & Reset';
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+                button.disabled = false;
+                button.textContent = 'Archive & Reset';
+            });
+
+            closeResetModal();
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('resetModal');
+            if (event.target == modal) {
+                closeResetModal();
+            }
+        }
+
+        // Allow Enter key to confirm
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && document.getElementById('resetModal').classList.contains('show')) {
+                confirmReset();
+            }
+        });
+    </script>
 </body>
 </html>
