@@ -139,33 +139,53 @@
             </div>
         </div>
 
-        <!-- Winner Summary Section -->
+        <!-- Current Test Statistics -->
         {% if winner != 'insufficient_data' %}
         <div class="confidence-section">
-            <h3>📊 Test Results Summary</h3>
+            <h3>📊 Current Test Statistics</h3>
             {% if winner == 'a' or winner == 'b' %}
             <div class="confidence-row">
-                <span class="confidence-label">Winner</span>
-                <span class="confidence-value">Variant {{ winner.upper() }}</span>
-            </div>
-            <div class="confidence-row">
-                <span class="confidence-label">Winning Conversion Rate</span>
+                <span class="confidence-label">Current Winner</span>
                 <span class="confidence-value" style="font-size: 20px; color: #4caf50;">
-                    {% if winner == 'a' %}{{ variant_a.conversion_rate }}%{% else %}{{ variant_b.conversion_rate }}%{% endif %}
+                    Variant {{ winner.upper() }} - {{ variant_a.conversion_rate if winner == 'a' else variant_b.conversion_rate }}%
                 </span>
             </div>
             <div class="confidence-row">
-                <span class="confidence-label">Statistical Significance</span>
+                <span class="confidence-label">Winner's Confidence Interval (95%)</span>
+                <span class="confidence-value">
+                    {% if winner == 'a' %}
+                        {{ variant_a.confidence_interval[0] }}% - {{ variant_a.confidence_interval[1] }}%
+                    {% else %}
+                        {{ variant_b.confidence_interval[0] }}% - {{ variant_b.confidence_interval[1] }}%
+                    {% endif %}
+                </span>
+            </div>
+            <div class="confidence-row">
+                <span class="confidence-label">Margin of Error</span>
+                <span class="confidence-value">
+                    ±{% if winner == 'a' %}{{ variant_a.margin_of_error }}{% else %}{{ variant_b.margin_of_error }}{% endif %}%
+                </span>
+            </div>
+            <div class="confidence-row">
+                <span class="confidence-label">P-Value</span>
+                <span class="confidence-value">{{ "%.4f"|format(p_value) }}</span>
+            </div>
+            <div class="confidence-row">
+                <span class="confidence-label">Statistically Significant?</span>
                 {% if is_significant %}
-                <span class="confidence-value" style="color: #4caf50; font-weight: 700;">YES - p-value: {{ "%.4f"|format(p_value) }}</span>
+                <span class="confidence-value" style="color: #4caf50; font-weight: 700;">✓ YES (p < 0.05)</span>
                 {% else %}
-                <span class="confidence-value" style="color: #ff9800; font-weight: 700;">NO - p-value: {{ "%.4f"|format(p_value) }}</span>
+                <span class="confidence-value" style="color: #ff9800; font-weight: 700;">⚠ NOT YET (p = {{ "%.4f"|format(p_value) }})</span>
                 {% endif %}
             </div>
             {% elif winner == 'tie' %}
             <div class="confidence-row">
                 <span class="confidence-label">Result</span>
                 <span class="confidence-value">Both variants have identical conversion rates</span>
+            </div>
+            <div class="confidence-row">
+                <span class="confidence-label">P-Value</span>
+                <span class="confidence-value">{{ "%.4f"|format(p_value) }}</span>
             </div>
             {% endif %}
             <button class="reset-button" onclick="openResetModal()">Reset Test & Archive Results</button>
