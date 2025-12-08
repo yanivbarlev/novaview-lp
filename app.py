@@ -501,10 +501,12 @@ def post_install():
 # === ROUTE 9: A/B Test Dashboard ===
 @app.route('/admin/ab-results')
 def ab_dashboard():
-    """A/B test results dashboard - Windows compatible"""
+    """A/B test results dashboard with statistical significance"""
     from ab_testing.ab_log_parser import ABLogParser
+    from ab_testing.test_history import TestHistoryManager
 
     parser = ABLogParser()
+    history_manager = TestHistoryManager()
 
     try:
         # Read last 5000 lines from log file for analysis
@@ -518,26 +520,111 @@ def ab_dashboard():
                 log_lines = all_lines[-5000:] if len(all_lines) > 5000 else all_lines
 
         metrics = parser.parse_logs(log_lines)
-        results = parser.calculate_conversion_rates()
+        results = parser.calculate_statistical_significance()
         winner, _ = parser.get_winner(min_impressions=50)
+
+        # Get test history
+        history = history_manager.get_history()
 
     except Exception as e:
         logger.error(f"Error reading logs for dashboard: {e}")
         # Return empty results on error
         results = {
             'a': {'impressions': 0, 'conversions': 0, 'clicks': 0,
-                  'exit_popup_shows': 0, 'conversion_rate': 0.0, 'click_rate': 0.0},
+                  'exit_popup_shows': 0, 'conversion_rate': 0.0, 'click_rate': 0.0,
+                  'confidence_interval': (0, 0), 'margin_of_error': 0, 'confidence_pct': 0},
             'b': {'impressions': 0, 'conversions': 0, 'clicks': 0,
-                  'exit_popup_shows': 0, 'conversion_rate': 0.0, 'click_rate': 0.0}
+                  'exit_popup_shows': 0, 'conversion_rate': 0.0, 'click_rate': 0.0,
+                  'confidence_interval': (0, 0), 'margin_of_error': 0, 'confidence_pct': 0},
+            'p_value': 1.0,
+            'is_significant': False
         }
         winner = 'error'
+        history = []
 
     return render_template('ab_dashboard.html',
                          variant_a=results.get('a', {}),
                          variant_b=results.get('b', {}),
                          winner=winner,
                          test_enabled=AB_TEST_ENABLED,
-                         test_name=AB_TEST_NAME)
+                         test_name=AB_TEST_NAME,
+                         p_value=results.get('p_value', 1.0),
+                         is_significant=results.get('is_significant', False),
+                         history=history)
+
+
+@app.route('/admin/api/reset-test', methods=['POST'])
+def reset_test():
+    """Reset A/B test and archive results"""
+    from ab_testing.ab_log_parser import ABLogParser
+    from ab_testing.test_history import TestHistoryManager
+
+    try:
+        data = request.get_json()
+        test_name = data.get('test_name', 'Unnamed Test')
+
+        # Get current metrics before reset
+        parser = ABLogParser()
+        log_file = os.path.join(_current_dir, 'app.log')
+
+        if os.path.exists(log_file):
+            with open(log_file, 'r', encoding='utf-8') as f:
+                log_lines = f.readlines()
+
+            metrics = parser.parse_logs(log_lines)
+            results = parser.calculate_statistical_significance()
+
+            # Archive test results
+            history_manager = TestHistoryManager()
+            test_entry = {
+                'name': test_name,
+                'variant_a': results.get('a', {}),
+                'variant_b': results.get('b', {}),
+                'p_value': results.get('p_value', 1.0),
+                'is_significant': results.get('is_significant', False)
+            }
+            history_manager.save_test_result(test_name, test_entry)
+
+            # Clear the log file
+            with open(log_file, 'w', encoding='utf-8') as f:
+                f.write('')
+
+            logger.info(f'A/B test "{test_name}" completed and archived')
+
+            return jsonify({
+                'success': True,
+                'message': f'Test "{test_name}" archived successfully',
+                'archived_results': test_entry
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'No test data to archive'
+            }), 400
+
+    except Exception as e:
+        logger.error(f"Error resetting test: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error resetting test: {str(e)}'
+        }), 500
+
+
+@app.route('/admin/api/test-history', methods=['GET'])
+def get_test_history():
+    """Get A/B test history"""
+    from ab_testing.test_history import TestHistoryManager
+
+    try:
+        history_manager = TestHistoryManager()
+        history = history_manager.get_history()
+        return jsonify({'success': True, 'history': history})
+    except Exception as e:
+        logger.error(f"Error retrieving test history: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error retrieving history: {str(e)}'
+        }), 500
 
 
 # === Legal Pages ===

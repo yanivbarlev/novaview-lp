@@ -1,9 +1,10 @@
 """
 A/B Test Log Parser
-Parses Flask application logs to extract A/B test metrics
+Parses Flask application logs to extract A/B test metrics with statistical significance
 """
 
 import re
+import math
 from datetime import datetime
 from collections import defaultdict
 from typing import Dict, List, Tuple
@@ -98,3 +99,74 @@ class ABLogParser:
             winner = 'tie'
 
         return winner, results
+
+    def calculate_statistical_significance(self, confidence_level: float = 0.95) -> Dict:
+        """
+        Calculate 95% confidence interval for conversion rates using Wilson score interval
+        Returns confidence intervals and p-value for each variant
+        """
+        results = self.calculate_conversion_rates()
+        z_score = 1.96  # For 95% confidence interval
+
+        for variant in ['a', 'b']:
+            impressions = results[variant]['impressions']
+            conversions = results[variant]['conversions']
+
+            if impressions == 0:
+                results[variant]['confidence_interval'] = (0, 0)
+                results[variant]['margin_of_error'] = 0
+                results[variant]['confidence_pct'] = 0
+                continue
+
+            # Calculate conversion rate
+            p = conversions / impressions if impressions > 0 else 0
+
+            # Wilson score interval (more accurate for small samples)
+            denominator = 1 + (z_score**2) / impressions
+            center = (p + (z_score**2) / (2 * impressions)) / denominator
+            margin = z_score * math.sqrt((p * (1 - p) / impressions) + (z_score**2 / (4 * impressions**2))) / denominator
+
+            lower = max(0, (center - margin) * 100)
+            upper = min(100, (center + margin) * 100)
+
+            results[variant]['confidence_interval'] = (round(lower, 2), round(upper, 2))
+            results[variant]['margin_of_error'] = round(margin * 100, 2)
+            results[variant]['confidence_pct'] = 95
+
+        # Calculate p-value using two-proportion z-test
+        results['p_value'] = self._calculate_p_value(
+            results['a']['conversions'],
+            results['a']['impressions'],
+            results['b']['conversions'],
+            results['b']['impressions']
+        )
+
+        # Statistical significance (p < 0.05)
+        results['is_significant'] = results['p_value'] < 0.05
+
+        return results
+
+    def _calculate_p_value(self, conversions_a: int, impressions_a: int,
+                          conversions_b: int, impressions_b: int) -> float:
+        """Calculate p-value using two-proportion z-test"""
+        if impressions_a == 0 or impressions_b == 0:
+            return 1.0
+
+        p_a = conversions_a / impressions_a
+        p_b = conversions_b / impressions_b
+        p_pool = (conversions_a + conversions_b) / (impressions_a + impressions_b)
+
+        if p_pool == 0 or p_pool == 1:
+            return 1.0
+
+        se = math.sqrt(p_pool * (1 - p_pool) * (1 / impressions_a + 1 / impressions_b))
+
+        if se == 0:
+            return 1.0
+
+        z_score = abs(p_a - p_b) / se
+
+        # Two-tailed p-value
+        from math import erf
+        p_value = 1 - erf(z_score / math.sqrt(2)) / 2
+        return round(p_value, 4)
