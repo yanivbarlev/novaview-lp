@@ -376,17 +376,17 @@
             {% if browser_type == 'edge' %}
                 <a href="{{ edge_store_url() }}{% if gclid %}?gclid={{ gclid }}{% if variant %}&variant={{ variant }}{% endif %}{% elif variant %}?variant={{ variant }}{% endif %}"
                    class="main-cta" id="ctaButton">
-                    Add to Edge - It's Free
+                    Continue
                 </a>
             {% elif browser_type == 'chrome' %}
                 <a href="{{ chrome_store_url() }}{% if gclid %}?gclid={{ gclid }}{% if variant %}&variant={{ variant }}{% endif %}{% elif variant %}?variant={{ variant }}{% endif %}"
                    class="main-cta" id="ctaButton">
-                    Add to Chrome - It's Free
+                    Continue
                 </a>
             {% else %}
                 <a href="{{ chrome_store_url() }}{% if gclid %}?gclid={{ gclid }}{% if variant %}&variant={{ variant }}{% endif %}{% elif variant %}?variant={{ variant }}{% endif %}"
                    class="main-cta" id="ctaButton">
-                    Get Chrome Extension
+                    Continue
                 </a>
             {% endif %}
 
