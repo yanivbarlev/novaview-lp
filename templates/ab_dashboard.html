@@ -46,6 +46,8 @@
         .history-item:last-child { margin-bottom: 0; }
         .history-item h4 { color: #333; margin-bottom: 10px; }
         .history-item p { color: #666; font-size: 14px; margin-bottom: 8px; }
+        .delete-history-button { background: #f44336; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-size: 12px; cursor: pointer; margin-left: 15px; white-space: nowrap; height: fit-content; }
+        .delete-history-button:hover { background: #da190b; }
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); }
         .modal.show { display: block; }
         .modal-content { background-color: #fefefe; margin: 15% auto; padding: 30px; border: 1px solid #888; border-radius: 8px; width: 400px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
@@ -137,36 +139,38 @@
             </div>
         </div>
 
-        <!-- Statistical Significance Section -->
+        <!-- Winner Summary Section -->
+        {% if winner != 'insufficient_data' %}
         <div class="confidence-section">
-            <h3>📊 Statistical Significance Analysis (95% Confidence)</h3>
+            <h3>📊 Test Results Summary</h3>
+            {% if winner == 'a' or winner == 'b' %}
             <div class="confidence-row">
-                <span class="confidence-label">Variant A - Confidence Interval</span>
-                <span class="confidence-value">{{ variant_a.confidence_interval[0] }}% - {{ variant_a.confidence_interval[1] }}%</span>
+                <span class="confidence-label">Winner</span>
+                <span class="confidence-value">Variant {{ winner.upper() }}</span>
             </div>
             <div class="confidence-row">
-                <span class="confidence-label">Variant A - Margin of Error</span>
-                <span class="confidence-value">±{{ variant_a.margin_of_error }}%</span>
+                <span class="confidence-label">Winning Conversion Rate</span>
+                <span class="confidence-value" style="font-size: 20px; color: #4caf50;">
+                    {% if winner == 'a' %}{{ variant_a.conversion_rate }}%{% else %}{{ variant_b.conversion_rate }}%{% endif %}
+                </span>
             </div>
             <div class="confidence-row">
-                <span class="confidence-label">Variant B - Confidence Interval</span>
-                <span class="confidence-value">{{ variant_b.confidence_interval[0] }}% - {{ variant_b.confidence_interval[1] }}%</span>
+                <span class="confidence-label">Statistical Significance</span>
+                {% if is_significant %}
+                <span class="confidence-value" style="color: #4caf50; font-weight: 700;">YES - p-value: {{ "%.4f"|format(p_value) }}</span>
+                {% else %}
+                <span class="confidence-value" style="color: #ff9800; font-weight: 700;">NO - p-value: {{ "%.4f"|format(p_value) }}</span>
+                {% endif %}
             </div>
+            {% elif winner == 'tie' %}
             <div class="confidence-row">
-                <span class="confidence-label">Variant B - Margin of Error</span>
-                <span class="confidence-value">±{{ variant_b.margin_of_error }}%</span>
+                <span class="confidence-label">Result</span>
+                <span class="confidence-value">Both variants have identical conversion rates</span>
             </div>
-            <div class="confidence-row">
-                <span class="confidence-label">P-Value</span>
-                <span class="confidence-value">{{ "%.4f"|format(p_value) }}</span>
-            </div>
-            {% if is_significant %}
-            <span class="significance-badge">✓ STATISTICALLY SIGNIFICANT (p < 0.05)</span>
-            {% else %}
-            <span class="significance-badge not-significant">⚠ NOT SIGNIFICANT YET (p ≥ 0.05)</span>
             {% endif %}
             <button class="reset-button" onclick="openResetModal()">Reset Test & Archive Results</button>
         </div>
+        {% endif %}
 
         <!-- Test History Section -->
         {% if history %}
@@ -174,16 +178,31 @@
             <h3>📈 Test History</h3>
             {% for test in history %}
             <div class="history-item">
-                <h4>{{ test.name }}</h4>
-                <p><strong>Date:</strong> {{ test.timestamp[:10] }} {{ test.timestamp[11:19] }}</p>
-                <p><strong>Variant A Conversion Rate:</strong> {{ test.metrics.variant_a.conversion_rate }}%</p>
-                <p><strong>Variant B Conversion Rate:</strong> {{ test.metrics.variant_b.conversion_rate }}%</p>
-                <p><strong>P-Value:</strong> {{ "%.4f"|format(test.metrics.p_value) }}</p>
-                {% if test.metrics.is_significant %}
-                <p><span class="significance-badge" style="font-size: 12px;">✓ Significant</span></p>
-                {% else %}
-                <p><span class="significance-badge not-significant" style="font-size: 12px;">Not Significant</span></p>
-                {% endif %}
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="flex: 1;">
+                        <h4>{{ test.name }}</h4>
+                        <p><strong>Date:</strong> {{ test.timestamp[:10] }} {{ test.timestamp[11:19] }}</p>
+
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #ddd;">
+                            <p style="margin-bottom: 6px;"><strong>Variant A:</strong></p>
+                            <p style="margin-left: 12px; margin-bottom: 4px;">Impressions: {{ test.metrics.variant_a.impressions }} | Clicks: {{ test.metrics.variant_a.clicks }} | Conversions: {{ test.metrics.variant_a.conversions }}</p>
+
+                            <p style="margin-bottom: 6px; margin-top: 8px;"><strong>Variant B:</strong></p>
+                            <p style="margin-left: 12px; margin-bottom: 4px;">Impressions: {{ test.metrics.variant_b.impressions }} | Clicks: {{ test.metrics.variant_b.clicks }} | Conversions: {{ test.metrics.variant_b.conversions }}</p>
+                        </div>
+
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #ddd;">
+                            <p style="margin-bottom: 4px;"><strong>Conversion Rates:</strong> A: {{ test.metrics.variant_a.conversion_rate }}% | B: {{ test.metrics.variant_b.conversion_rate }}%</p>
+                            <p style="margin-bottom: 4px;"><strong>P-Value:</strong> {{ "%.4f"|format(test.metrics.p_value) }}</p>
+                            {% if test.metrics.is_significant %}
+                            <span class="significance-badge" style="font-size: 12px;">✓ Statistically Significant</span>
+                            {% else %}
+                            <span class="significance-badge not-significant" style="font-size: 12px;">Not Significant</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <button class="delete-history-button" onclick="deleteHistoryItem('{{ loop.index0 }}', this)" title="Delete this test record">Delete</button>
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -294,6 +313,41 @@
                 confirmReset();
             }
         });
+
+        function deleteHistoryItem(index, button) {
+            if (!confirm('Are you sure you want to delete this test record? This cannot be undone.')) {
+                return;
+            }
+
+            button.disabled = true;
+            button.textContent = 'Deleting...';
+
+            fetch('/admin/api/delete-test-history', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    index: parseInt(index)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Test record deleted successfully');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                    button.disabled = false;
+                    button.textContent = 'Delete';
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+                button.disabled = false;
+                button.textContent = 'Delete';
+            });
+        }
     </script>
 </body>
 </html>

@@ -627,6 +627,43 @@ def get_test_history():
         }), 500
 
 
+@app.route('/admin/api/delete-test-history', methods=['POST'])
+def delete_test_history():
+    """Delete a test record from history"""
+    from ab_testing.test_history import TestHistoryManager
+
+    try:
+        data = request.get_json()
+        index = data.get('index', -1)
+
+        if index < 0:
+            return jsonify({'success': False, 'message': 'Invalid index'}), 400
+
+        history_manager = TestHistoryManager()
+        history = history_manager.get_history()
+
+        if index >= len(history):
+            return jsonify({'success': False, 'message': 'Index out of range'}), 400
+
+        # Remove the item at the specified index
+        deleted_item = history.pop(index)
+        history_manager._save_history(history)
+
+        logger.info(f'Deleted test history item: {deleted_item.get("name", "Unknown")}')
+
+        return jsonify({
+            'success': True,
+            'message': 'Test record deleted successfully',
+            'deleted_item': deleted_item
+        })
+    except Exception as e:
+        logger.error(f"Error deleting test history: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error deleting test: {str(e)}'
+        }), 500
+
+
 # === Legal Pages ===
 @app.route('/privacy')
 def privacy():
