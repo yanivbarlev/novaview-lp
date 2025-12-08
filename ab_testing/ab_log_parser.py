@@ -26,8 +26,8 @@ class ABLogParser:
                 return self.metrics
 
         for line in lines:
-            # Parse LANDING_PAGE events (impressions)
-            if 'LANDING_PAGE' in line:
+            # Parse LANDING_PAGE and STACKFREE_PAGE events (impressions)
+            if 'LANDING_PAGE' in line or 'STACKFREE_PAGE' in line:
                 variant = self._extract_field(line, 'variant')
                 if variant in ['a', 'b']:
                     self.metrics[variant]['impressions'] += 1
