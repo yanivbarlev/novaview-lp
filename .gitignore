@@ -23,6 +23,7 @@ Thumbs.db
 
 # Logs
 *.log
+cache_audit.log
 
 # Cache
 images/cache/

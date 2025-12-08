@@ -33,6 +33,27 @@ from utils import (
 # Setup logging
 logger = logging.getLogger(__name__)
 
+# Setup dedicated cache audit logger
+cache_audit_logger = logging.getLogger('cache_audit')
+cache_audit_logger.setLevel(logging.INFO)
+
+# Create cache audit log file handler (separate from main app log)
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+cache_audit_handler = logging.FileHandler(
+    os.path.join(_current_dir, 'cache_audit.log'),
+    encoding='utf-8'
+)
+cache_audit_handler.setLevel(logging.INFO)
+
+# Format: timestamp | keyword | action | details
+cache_audit_formatter = logging.Formatter(
+    '%(asctime)s | %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+cache_audit_handler.setFormatter(cache_audit_formatter)
+cache_audit_logger.addHandler(cache_audit_handler)
+cache_audit_logger.propagate = False  # Don't propagate to root logger
+
 
 def check_all_images_cached(keyword_base: str, count: int = 3) -> bool:
     """
@@ -45,11 +66,30 @@ def check_all_images_cached(keyword_base: str, count: int = 3) -> bool:
     Returns:
         True if all images exist and are valid, False otherwise
     """
+    cache_audit_logger.info(f"CACHE_CHECK | keyword={keyword_base} | count={count} | checking final images")
+
+    missing_images = []
     for i in range(1, count + 1):
         base_path = os.path.join(FINAL_IMAGES_DIR, f"{keyword_base}_{i}")
         actual_path = resolve_actual_saved_path(base_path)
-        if not actual_path or not is_file_an_image(actual_path):
-            return False
+
+        # Detailed logging for each image check
+        if not actual_path:
+            cache_audit_logger.info(f"CACHE_MISS | keyword={keyword_base} | image={i} | reason=file_not_found | path={base_path}")
+            missing_images.append(i)
+        elif not is_file_an_image(actual_path):
+            cache_audit_logger.info(f"CACHE_MISS | keyword={keyword_base} | image={i} | reason=invalid_image | path={actual_path}")
+            missing_images.append(i)
+        else:
+            # Log successful cache hit for this specific image
+            file_size = os.path.getsize(actual_path) if os.path.exists(actual_path) else 0
+            cache_audit_logger.info(f"CACHE_HIT | keyword={keyword_base} | image={i} | path={actual_path} | size={file_size}")
+
+    if missing_images:
+        cache_audit_logger.info(f"CACHE_RESULT | keyword={keyword_base} | status=MISS | missing_images={missing_images}")
+        return False
+
+    cache_audit_logger.info(f"CACHE_RESULT | keyword={keyword_base} | status=HIT | all_images_found=True")
     return True
 
 
@@ -378,20 +418,31 @@ class ImageSearchService:
         """
         keyword_base = sanitize_keyword_for_filename(keyword)
 
+        # Log request entry
+        cache_audit_logger.info(f"REQUEST_START | keyword={keyword} | keyword_base={keyword_base} | count={count}")
+
         # Phase 1: Check if all final images already exist (works without API credentials)
         if check_all_images_cached(keyword_base, count):
             logger.info(f"Cache hit: All images exist for '{keyword}'")
+            cache_audit_logger.info(f"PHASE_1_SUCCESS | keyword={keyword_base} | final_cache=HIT | returning cached images")
             return self._get_final_images(keyword_base, count)
+
+        cache_audit_logger.info(f"PHASE_1_MISS | keyword={keyword_base} | final_cache=MISS | checking candidates")
 
         # Only check API credentials if we need to fetch new images
         if not GOOGLE_API_KEY or not GOOGLE_CX:
             logger.error("Google API credentials not configured - cannot fetch new images")
+            cache_audit_logger.info(f"ERROR | keyword={keyword_base} | reason=missing_api_credentials")
             return []
 
         # Phase 2: Try to reuse existing candidates
         existing_candidates = list_valid_cached_candidates(keyword_base)
+        cache_audit_logger.info(f"PHASE_2_CHECK | keyword={keyword_base} | candidates_found={len(existing_candidates)} | required={count}")
+
         if len(existing_candidates) >= count:
             logger.info(f"Candidate reuse: Found {len(existing_candidates)} candidates for '{keyword}'")
+            cache_audit_logger.info(f"PHASE_2_SUCCESS | keyword={keyword_base} | using_candidate_cache | count={len(existing_candidates)}")
+
             # Select diverse images from existing candidates
             selected_paths = select_diverse_images(existing_candidates, count)
 
@@ -400,10 +451,12 @@ class ImageSearchService:
             if len(saved_files) == count:
                 # Clean up candidates after successful promotion
                 delete_candidates_cache(keyword_base)
+                cache_audit_logger.info(f"PHASE_2_COMPLETE | keyword={keyword_base} | promoted={len(saved_files)} | cleaned_candidates=True")
                 return self._get_final_images(keyword_base, count)
 
         # Phase 3: Download new candidates from API
         logger.info(f"API call needed for '{keyword}' - downloading candidates")
+        cache_audit_logger.info(f"PHASE_3_START | keyword={keyword_base} | reason=need_api_download | existing_candidates={len(existing_candidates)}")
         return self._download_and_select_candidates(keyword, keyword_base, count)
 
     def _get_final_images(self, keyword_base: str, count: int) -> List[Dict]:
@@ -475,6 +528,12 @@ class ImageSearchService:
                 logger.info(f'GOOGLE_API_CALL keyword="{keyword}" requested={request_num} '
                            f'urls_received={len(urls)} response_time={api_response_time}s '
                            f'quota_usage=1 status_code={response.status_code} api=primary')
+
+                # Detailed cache audit log for API call
+                cache_audit_logger.info(f"API_CALL | keyword={keyword_base} | api=primary | "
+                                       f"requested={request_num} | urls_received={len(urls)} | "
+                                       f"response_time={api_response_time}s | status={response.status_code} | "
+                                       f"quota_used=1")
 
             except requests.exceptions.HTTPError as e:
                 if e.response.status_code == 429:
