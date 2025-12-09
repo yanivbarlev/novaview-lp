@@ -7,7 +7,7 @@ import os
 import logging
 import threading
 from datetime import datetime
-from flask import Flask, render_template, request, send_from_directory, jsonify, redirect
+from flask import Flask, render_template, request, send_from_directory, jsonify, redirect, make_response
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -159,13 +159,19 @@ def landing_page():
 
     # Render template with NO server-side image fetching
     # Images will load via JavaScript AJAX after page renders
-    return render_template(template_name,
+    response = make_response(render_template(template_name,
                          keyword=keyword,
                          gclid=gclid,
                          show_images=show_images,
                          browser_type=browser_type,
                          variant=variant,              # NEW
-                         ab_test_enabled=AB_TEST_ENABLED)  # NEW
+                         ab_test_enabled=AB_TEST_ENABLED))  # NEW
+
+    # Set cookie to track variant for conversion attribution
+    # Cookie expires in 30 days to handle delayed installations
+    response.set_cookie('ab_variant', variant, max_age=30*24*60*60, samesite='Lax')
+
+    return response
 
 
 # === ROUTE 2: StackFree Landing Page ===
@@ -222,13 +228,19 @@ def stackfree_landing():
 
     # Render template with NO server-side image fetching
     # Images will load via JavaScript AJAX after page renders
-    return render_template(template_name,
+    response = make_response(render_template(template_name,
                          keyword=keyword,
                          gclid=gclid,
                          show_images=show_images,
                          browser_type=browser_type,
                          variant=variant,              # NEW
-                         ab_test_enabled=AB_TEST_ENABLED)  # NEW
+                         ab_test_enabled=AB_TEST_ENABLED))  # NEW
+
+    # Set cookie to track variant for conversion attribution
+    # Cookie expires in 30 days to handle delayed installations
+    response.set_cookie('ab_variant', variant, max_age=30*24*60*60, samesite='Lax')
+
+    return response
 
 
 # === ROUTE 3: Image Search API ===
@@ -420,6 +432,7 @@ def thankyou_downloadmanager():
     URL Parameters:
         source (str): Source identifier (e.g., 'novaview')
         gclid (str): Google Click ID for conversion attribution
+        variant (str): A/B test variant (from URL or cookie)
 
     Returns:
         HTML thank you page with conversion tracking
@@ -427,13 +440,36 @@ def thankyou_downloadmanager():
     source = request.args.get('source', 'novaview')
     gclid = request.args.get('gclid', '')
 
+    # Get variant from URL parameter OR cookie
+    variant = request.args.get('variant', '') or request.cookies.get('ab_variant', '')
+
+    # Get user info for logging
+    user_agent = request.headers.get('User-Agent', 'Unknown')[:100]
+    client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
+
     logger.info(
-        f'THANKYOU_PAGE source="{source}" gclid="{gclid}" '
-        f'ip="{request.remote_addr}" '
-        f'user_agent="{request.headers.get("User-Agent", "Unknown")[:100]}"'
+        f'THANKYOU_PAGE source="{source}" gclid="{gclid}" variant="{variant}" '
+        f'ip="{client_ip}" user_agent="{user_agent}"'
     )
 
-    return render_template('thankyou.html', gclid=gclid, source=source)
+    # Log conversion if variant is present
+    if variant in ['a', 'b']:
+        logger.info(
+            f'CONVERSION gclid="{gclid}" variant="{variant}" '
+            f'user_agent="{user_agent}" ip="{client_ip}"'
+        )
+
+    # Render template and clear cookie
+    response = make_response(render_template('thankyou.html',
+                                            gclid=gclid,
+                                            source=source,
+                                            variant=variant))
+
+    # Clear the cookie after logging conversion (prevent duplicate conversions)
+    if variant:
+        response.set_cookie('ab_variant', '', expires=0)
+
+    return response
 
 
 # === ROUTE 7B: Thank You Page (TEST VERSION - NO REDIRECT) ===
