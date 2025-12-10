@@ -29,6 +29,53 @@ def sanitize_keyword_for_filename(keyword: str) -> str:
     return keyword or "image"
 
 
+def is_bot(user_agent: str) -> bool:
+    """
+    Detect if user agent is a bot/crawler
+
+    Filters out common bots including:
+    - Search engine crawlers (Google, Bing, etc.)
+    - Monitoring/testing tools (curl, wget, Python, etc.)
+    - Automated browsers (headless, Selenium, etc.)
+
+    Args:
+        user_agent: HTTP User-Agent header string
+
+    Returns:
+        True if bot detected, False if likely a real user
+    """
+    if not user_agent:
+        return False
+
+    user_agent_lower = user_agent.lower()
+
+    # Bot patterns to detect
+    bot_patterns = [
+        'bot', 'crawler', 'spider', 'scraper',
+        'curl', 'wget', 'python', 'java',
+        'http', 'axios', 'fetch', 'go-http',
+        'headless', 'phantom', 'selenium', 'playwright', 'puppeteer',
+        'preview', 'validator', 'checker', 'monitor', 'uptime',
+        'gtmetrix', 'pingdom', 'statuscake', 'newrelic'
+    ]
+
+    # Check for bot patterns
+    for pattern in bot_patterns:
+        if pattern in user_agent_lower:
+            return True
+
+    # Specific check for Google's mobile crawler (Nexus 5X)
+    # This is used by PageSpeed Insights and Mobile-Friendly Test
+    if 'nexus 5x build/mmb29p' in user_agent_lower:
+        return True
+
+    # Check for suspicious patterns (valid browsers always have Mozilla/5.0)
+    if 'mozilla/5.0' not in user_agent_lower:
+        return True
+
+    return False
+
+
 def detect_browser_type(user_agent: str) -> str:
     """
     Detect browser type from User-Agent string

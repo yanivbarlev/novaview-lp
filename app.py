@@ -23,7 +23,7 @@ from config import (
     AB_TEST_ENABLED,
     AB_TEST_NAME
 )
-from utils import detect_browser_type, sanitize_keyword_for_filename
+from utils import detect_browser_type, sanitize_keyword_for_filename, is_bot
 from image_service import ImageSearchService
 
 # Initialize Flask app with explicit absolute paths
@@ -147,12 +147,16 @@ def landing_page():
     # Get client IP (respects proxy headers)
     client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
 
-    # NEW: Log landing page visit with variant
-    logger.info(
-        f'LANDING_PAGE keyword="{keyword}" gclid="{gclid}" variant="{variant}" '
-        f'show_images={show_images} has_kw_param={has_kw_param} '
-        f'browser="{browser_type}" user_agent="{user_agent[:100]}" ip="{client_ip}"'
-    )
+    # Bot detection - only log real users, skip bots/crawlers
+    user_is_bot = is_bot(user_agent)
+
+    # NEW: Log landing page visit with variant (only for real users, not bots)
+    if not user_is_bot:
+        logger.info(
+            f'LANDING_PAGE keyword="{keyword}" gclid="{gclid}" variant="{variant}" '
+            f'show_images={show_images} has_kw_param={has_kw_param} '
+            f'browser="{browser_type}" user_agent="{user_agent[:100]}" ip="{client_ip}"'
+        )
 
     # NEW: Select template based on variant
     template_name = f'index_variant_{variant}.html'
@@ -216,12 +220,16 @@ def stackfree_landing():
     # Get client IP (respects proxy headers)
     client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
 
-    # NEW: Log stackfree page visit with variant
-    logger.info(
-        f'STACKFREE_PAGE keyword="{keyword}" gclid="{gclid}" variant="{variant}" '
-        f'show_images={show_images} has_kw_param={has_kw_param} '
-        f'browser="{browser_type}" user_agent="{user_agent[:100]}" ip="{client_ip}"'
-    )
+    # Bot detection - only log real users, skip bots/crawlers
+    user_is_bot = is_bot(user_agent)
+
+    # NEW: Log stackfree page visit with variant (only for real users, not bots)
+    if not user_is_bot:
+        logger.info(
+            f'STACKFREE_PAGE keyword="{keyword}" gclid="{gclid}" variant="{variant}" '
+            f'show_images={show_images} has_kw_param={has_kw_param} '
+            f'browser="{browser_type}" user_agent="{user_agent[:100]}" ip="{client_ip}"'
+        )
 
     # NEW: Select template based on variant
     template_name = f'index_variant_{variant}.html'
@@ -447,13 +455,18 @@ def thankyou_downloadmanager():
     user_agent = request.headers.get('User-Agent', 'Unknown')[:100]
     client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
 
-    logger.info(
-        f'THANKYOU_PAGE source="{source}" gclid="{gclid}" variant="{variant}" '
-        f'ip="{client_ip}" user_agent="{user_agent}"'
-    )
+    # Bot detection - only log real users, skip bots/crawlers
+    user_is_bot = is_bot(user_agent)
 
-    # Log conversion if variant is present
-    if variant in ['a', 'b']:
+    # Log thank you page visit (only for real users, not bots)
+    if not user_is_bot:
+        logger.info(
+            f'THANKYOU_PAGE source="{source}" gclid="{gclid}" variant="{variant}" '
+            f'ip="{client_ip}" user_agent="{user_agent}"'
+        )
+
+    # Log conversion if variant is present (only for real users, not bots)
+    if variant in ['a', 'b'] and not user_is_bot:
         logger.info(
             f'CONVERSION gclid="{gclid}" variant="{variant}" '
             f'user_agent="{user_agent}" ip="{client_ip}"'
