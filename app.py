@@ -545,15 +545,13 @@ def ab_dashboard():
     history_manager = TestHistoryManager()
 
     try:
-        # Read last 5000 lines from log file for analysis
+        # Read all lines from log file for analysis (matches reset function)
         log_lines = []
         log_file = os.path.join(_current_dir, 'app.log')  # Use absolute path
 
         if os.path.exists(log_file):
             with open(log_file, 'r', encoding='utf-8') as f:
-                # Read all lines and get last 5000
-                all_lines = f.readlines()
-                log_lines = all_lines[-5000:] if len(all_lines) > 5000 else all_lines
+                log_lines = f.readlines()
 
         metrics = parser.parse_logs(log_lines)
         results = parser.calculate_statistical_significance()
