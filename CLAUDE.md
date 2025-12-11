@@ -27,8 +27,9 @@ cp .env.example .env
 # Development server (localhost:5000)
 python app.py
 
-# Production server (use with PythonAnywhere WSGI)
-# See deployment section in README.md
+# Deploy to production (PythonAnywhere)
+python deploy.py
+# See DEPLOYMENT.md for details
 ```
 
 ### Testing URLs
@@ -298,6 +299,33 @@ This prevents shipping broken changes like blank rectangles, blurry images, or l
 - Target file size: `config.py` - TARGET_FILE_SIZE
 - Selection algorithm: `image_service.py` - ImageSearchService class
 
+### Deploying to Production
+
+1. **Test locally first:**
+   ```bash
+   python app.py
+   # Test at http://localhost:5000
+   ```
+
+2. **Commit your changes:**
+   ```bash
+   git add .
+   git commit -m "Description of changes"
+   git push origin master
+   ```
+
+3. **Deploy to PythonAnywhere:**
+   ```bash
+   python deploy.py
+   ```
+
+4. **Verify deployment:**
+   - Check https://www.eguidesearches.com
+   - Test key functionality
+   - Monitor server logs
+
+**See DEPLOYMENT.md for detailed deployment documentation.**
+
 ### Debugging Template Loading Issues
 
 **Problem:** Flask loads templates from wrong directory
@@ -331,24 +359,113 @@ if 'chrome/' in user_agent:  # MUST come after Edge/Opera
 
 ## Production Deployment (PythonAnywhere)
 
-### WSGI Configuration
+### Quick Deploy
 
-Edit `/var/www/www_eguidesearches_com_wsgi.py`:
-```python
-import sys
-sys.path.insert(0, '/home/yanivbl/apps/eguidesearches/novaview-lp')
-from app import app as application
+```bash
+python deploy.py
 ```
 
-### Web App Settings
+**See DEPLOYMENT.md for complete deployment documentation.**
 
-- Source code: `/home/yanivbl/apps/eguidesearches/novaview-lp`
-- Working directory: `/home/yanivbl/apps/eguidesearches/novaview-lp`
-- Static files: `/static/` → `/home/yanivbl/apps/eguidesearches/novaview-lp/static/`
+### Production Configuration
+
+**Server:** PythonAnywhere
+**User:** yanivbl
+**App Directory:** `/home/yanivbl/apps/eguidesearches-novaview`
+**WSGI File:** `/var/www/www_eguidesearches_com_wsgi.py`
+**Production URL:** https://www.eguidesearches.com
+**Python Version:** 3.10
+**Virtualenv:** `/home/yanivbl/.virtualenvs/mysite-virtualen`
+
+### Deployment Files
+
+- `deploy.py` - Automated deployment script
+- `DEPLOYMENT.md` - Complete deployment documentation
+- `.deployment/` - Deployment logs and temporary files (NOT in git)
+- `.deployment/deployment.log` - Activity log with timestamps
 
 ### Environment Variables
 
 Add to web app settings or create `.env` file in working directory.
+
+## A/B Testing Variant Assignment
+
+### Overview
+
+The application implements fair A/B testing with a three-tier variant assignment system:
+
+1. **URL Parameter** (`?variant=a` or `?variant=b`) - Explicit override for testing
+2. **Cookie** (`ab_variant`) - Maintains consistency for returning users
+3. **Random 50/50** - Fair distribution for new users via `random.choice(['a', 'b'])`
+
+### Implementation Details
+
+**Location:** `app.py` lines 126-139 (landing page) and 213-238 (stackfree route)
+
+**Code Flow:**
+```python
+variant_param = request.args.get('variant', '').lower()
+variant_cookie = request.cookies.get('ab_variant', '')
+
+if variant_param in ['a', 'b']:
+    variant = variant_param  # URL parameter takes precedence
+elif variant_cookie in ['a', 'b']:
+    variant = variant_cookie  # Use existing cookie
+else:
+    variant = random.choice(['a', 'b'])  # Random for new users
+
+# Cookie expires in 30 days
+response.set_cookie('ab_variant', variant, max_age=30*24*60*60, samesite='Lax')
+```
+
+### Testing the Variant System
+
+**Local Testing:**
+```bash
+# Start dev server
+python app.py
+
+# Test URL parameter override
+curl http://localhost:5000/?kw=test&variant=b
+
+# Test cookie persistence (in same session)
+# First request: no parameter → random variant assigned
+# Second request: same session → uses cookie from first request
+```
+
+**Production Testing:**
+```bash
+# Check current production logs
+python << 'EOF'
+import requests
+resp = requests.get(
+    'https://www.pythonanywhere.com/api/v0/user/yanivbl/files/path/home/yanivbl/apps/eguidesearches-novaview/app.log',
+    headers={'Authorization': 'Token YOUR_API_TOKEN'}
+)
+lines = [l for l in resp.text.split('\n') if 'LANDING_PAGE' in l]
+# Count variant distribution in last 50 lines
+variants = {'a': 0, 'b': 0}
+for line in lines[-50:]:
+    if 'variant="a"' in line: variants['a'] += 1
+    elif 'variant="b"' in line: variants['b'] += 1
+print(f"Distribution: A={variants['a']}, B={variants['b']}")
+EOF
+```
+
+### Key Features
+
+- **Fair Distribution:** New users get random 50/50 split
+- **User Persistence:** Returning users maintain their assigned variant via 30-day cookie
+- **Testing Flexibility:** Can force specific variant with `?variant=a` parameter
+- **Logging:** All assignments logged with `variant="a"` or `variant="b"` tags
+- **Equal Paired Traffic:** Both variants get equal share of mysterious paired requests, making relative performance comparison valid
+
+### Important Notes
+
+- The random assignment fixes the previous bias where variant A was getting 3:1 more impressions
+- Cookie expires after 30 days to accommodate delayed installations
+- URL parameter always takes precedence (useful for direct testing/debugging)
+- Both landing page (`/`) and stackfree (`/stackfree`) routes implement identical logic
 
 ## Known Issues
 
@@ -359,16 +476,31 @@ Add to web app settings or create `.env` file in working directory.
 
 ## File Locations
 
+**Application Code:**
 - Main app: `app.py`
 - Configuration: `config.py`
 - Image service: `image_service.py`
 - Utilities: `utils.py`
+
+**Templates & Assets:**
 - Templates: `templates/`
 - Static assets: `static/`
 - Cached images: `images/`
 - Candidate cache: `images/cache/`
-- Documentation: `documents/build-status.md`
+
+**Documentation:**
+- Project overview: `README.md`
+- Claude instructions: `CLAUDE.md`
+- Deployment guide: `DEPLOYMENT.md`
+- Build status: `documents/build-status.md`
+
+**Deployment:**
+- Deployment script: `deploy.py`
+- Deployment logs: `.deployment/` (NOT in git)
+
+**Configuration:**
 - Dependencies: `requirements.txt`
+- Environment: `.env` (NOT in git)
 
 ## Performance Expectations
 
