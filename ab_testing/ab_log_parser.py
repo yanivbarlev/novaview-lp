@@ -1,6 +1,9 @@
 """
 A/B Test Log Parser
 Parses Flask application logs to extract A/B test metrics with statistical significance
+
+IMPORTANT: Impressions are deduplicated by IP address to account for returning users.
+This ensures accurate A/B test results by counting unique users, not total page views.
 """
 
 import re
@@ -16,6 +19,11 @@ class ABLogParser:
             'a': {'impressions': 0, 'conversions': 0, 'clicks': 0, 'exit_popup_shows': 0},
             'b': {'impressions': 0, 'conversions': 0, 'clicks': 0, 'exit_popup_shows': 0}
         }
+        # Track unique IPs per variant to deduplicate returning users
+        self.unique_ips = {
+            'a': set(),
+            'b': set()
+        }
 
     def parse_logs(self, lines: List[str] = None) -> Dict:
         """Parse log lines and extract A/B test metrics"""
@@ -30,8 +38,10 @@ class ABLogParser:
             # Parse LANDING_PAGE and STACKFREE_PAGE events (impressions)
             if 'LANDING_PAGE' in line or 'STACKFREE_PAGE' in line:
                 variant = self._extract_field(line, 'variant')
-                if variant in ['a', 'b']:
-                    self.metrics[variant]['impressions'] += 1
+                ip = self._extract_field(line, 'ip')
+                if variant in ['a', 'b'] and ip:
+                    # Track unique IPs to deduplicate returning users
+                    self.unique_ips[variant].add(ip)
 
             # Parse CONVERSION events
             elif 'CONVERSION' in line:
@@ -50,6 +60,10 @@ class ABLogParser:
                 variant = self._extract_field(line, 'variant')
                 if variant in ['a', 'b']:
                     self.metrics[variant]['exit_popup_shows'] += 1
+
+        # Update impression counts from unique IPs
+        for variant in ['a', 'b']:
+            self.metrics[variant]['impressions'] = len(self.unique_ips[variant])
 
         return self.metrics
 
