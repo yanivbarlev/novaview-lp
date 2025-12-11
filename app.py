@@ -6,6 +6,7 @@ Clean, minimal Flask app with only essential routes
 import os
 import logging
 import threading
+import random
 from datetime import datetime
 from flask import Flask, render_template, request, send_from_directory, jsonify, redirect, make_response
 from dotenv import load_dotenv
@@ -121,17 +122,31 @@ def landing_page():
     keyword = request.args.get('kw', 'trending').strip()
     show_images = request.args.get('img', '').lower() == 'true'
     gclid = request.args.get('gclid', '')
-    variant = request.args.get('variant', 'a').lower()  # NEW: Get variant from URL
+
+    # Variant assignment with proper precedence:
+    # 1. URL parameter (explicit override)
+    # 2. Cookie (returning user)
+    # 3. Random 50/50 split (new user)
+    variant_param = request.args.get('variant', '').lower()
+    variant_cookie = request.cookies.get('ab_variant', '')
+
+    if variant_param in ['a', 'b']:
+        variant = variant_param  # URL parameter takes precedence
+    elif variant_cookie in ['a', 'b']:
+        variant = variant_cookie  # Use existing cookie
+    else:
+        # Random assignment for new users (50/50 split)
+        variant = random.choice(['a', 'b'])
+
+    # Validate and set default if needed (safety check)
+    if variant not in ['a', 'b']:
+        variant = 'a'
 
     # Sanitize keyword (max 100 chars)
     if not keyword or len(keyword) > 100:
         keyword = 'trending'
 
-    # NEW: Validate variant
-    if variant not in ['a', 'b']:
-        variant = 'a'
-
-    # NEW: If A/B test disabled, force variant A
+    # If A/B test disabled, force variant A
     if not AB_TEST_ENABLED:
         variant = 'a'
 
@@ -194,17 +209,31 @@ def stackfree_landing():
     keyword = request.args.get('kw', 'trending').strip()
     show_images = request.args.get('img', '').lower() == 'true'
     gclid = request.args.get('gclid', '')
-    variant = request.args.get('variant', 'a').lower()  # NEW: Get variant from URL
+
+    # Variant assignment with proper precedence:
+    # 1. URL parameter (explicit override)
+    # 2. Cookie (returning user)
+    # 3. Random 50/50 split (new user)
+    variant_param = request.args.get('variant', '').lower()
+    variant_cookie = request.cookies.get('ab_variant', '')
+
+    if variant_param in ['a', 'b']:
+        variant = variant_param  # URL parameter takes precedence
+    elif variant_cookie in ['a', 'b']:
+        variant = variant_cookie  # Use existing cookie
+    else:
+        # Random assignment for new users (50/50 split)
+        variant = random.choice(['a', 'b'])
+
+    # Validate and set default if needed (safety check)
+    if variant not in ['a', 'b']:
+        variant = 'a'
 
     # Sanitize keyword (max 100 chars)
     if not keyword or len(keyword) > 100:
         keyword = 'trending'
 
-    # NEW: Validate variant
-    if variant not in ['a', 'b']:
-        variant = 'a'
-
-    # NEW: If A/B test disabled, force variant A
+    # If A/B test disabled, force variant A
     if not AB_TEST_ENABLED:
         variant = 'a'
 
