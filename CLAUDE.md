@@ -323,6 +323,15 @@ This prevents shipping broken changes like blank rectangles, blurry images, or l
    - Check https://www.eguidesearches.com
    - Test key functionality
    - Monitor server logs
+   - **IMPORTANT:** Use Ctrl+Shift+R to bypass browser cache
+   - Verify specific changes (e.g., check HTML source for expected values)
+
+**CRITICAL DEPLOYMENT NOTES:**
+- **ONLY use `deploy.py`** - this is the working deployment script
+- **DO NOT use** `deploy_production.py` or `deploy_files_to_paw.py` (broken scripts that don't upload files)
+- Always wait 10-15 seconds after deployment for server to fully reload
+- Verify by checking production URL, not just relying on "success" message
+- See DEPLOYMENT_ISSUE_FIXED.md for details on past issues
 
 **See DEPLOYMENT.md for detailed deployment documentation.**
 
@@ -379,10 +388,13 @@ python deploy.py
 
 ### Deployment Files
 
-- `deploy.py` - Automated deployment script
+- `deploy.py` - **Working deployment script (USE THIS ONE)**
 - `DEPLOYMENT.md` - Complete deployment documentation
+- `DEPLOYMENT_ISSUE_FIXED.md` - Notes on deployment issues and fixes (2025-12-18)
 - `.deployment/` - Deployment logs and temporary files (NOT in git)
 - `.deployment/deployment.log` - Activity log with timestamps
+
+**WARNING:** Do not use `deploy_production.py` or `deploy_files_to_paw.py` - these are broken scripts that don't actually upload files to the server.
 
 ### Environment Variables
 

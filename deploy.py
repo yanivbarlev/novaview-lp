@@ -1,191 +1,202 @@
 #!/usr/bin/env python3
 """
-Clean Deployment Script for NovaView Landing Page
-Automatically deploys code to PythonAnywhere and verifies deployment
-No clutter files created - everything stays in .deployment/ folder
+Working Deployment Script for PythonAnywhere
+Uses the Files API correctly to upload all application files
 """
 
-import subprocess
-import sys
-import os
-from datetime import datetime
+import requests
+import time
 from pathlib import Path
 
-# Color codes for terminal output
-class Color:
-    HEADER = '\033[95m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
+# Configuration
+PAW_TOKEN = "02cbe543901038d81a9bf86cddbf1288ed4c8c1b"
+USERNAME = "yanivbl"
+DOMAIN = "www.eguidesearches.com"
+APP_PATH = f"/home/{USERNAME}/apps/eguidesearches-novaview"
 
-def log(message, level="INFO"):
-    """Log message with timestamp and color"""
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+# Project root
+PROJECT_ROOT = Path(__file__).parent.absolute()
 
-    if level == "INFO":
-        color = Color.BLUE
-        prefix = "INFO   "
-    elif level == "SUCCESS":
-        color = Color.GREEN
-        prefix = "SUCCESS"
-    elif level == "WARNING":
-        color = Color.YELLOW
-        prefix = "WARNING"
-    elif level == "ERROR":
-        color = Color.RED
-        prefix = "ERROR  "
-    elif level == "HEADER":
-        color = Color.HEADER
-        prefix = "---"
-    else:
-        color = Color.ENDC
-        prefix = level
+# Files to deploy (relative paths)
+FILES_TO_DEPLOY = [
+    # Core application files
+    'app.py',
+    'config.py',
+    'image_service.py',
+    'utils.py',
+    # A/B testing module
+    'ab_testing/__init__.py',
+    'ab_testing/ab_log_parser.py',
+    'ab_testing/test_history.py',
+    # Templates
+    'templates/ab_dashboard.html',
+    'templates/index_variant_a.html',
+    'templates/index_variant_b.html',
+    'templates/landing.html',
+    'templates/legal.html',
+    'templates/legal_about.html',
+    'templates/legal_contact.html',
+    'templates/legal_copyright.html',
+    'templates/legal_eula.html',
+    'templates/legal_privacy.html',
+    'templates/legal_terms.html',
+    'templates/legal_uninstall.html',
+    'templates/thankyou.html',
+    'templates/thankyou-test.html',
+]
 
-    print(f"{color}[{timestamp}] {prefix}: {message}{Color.ENDC}")
+def upload_file(local_path, remote_path):
+    """Upload a single file to PythonAnywhere"""
 
-    # Also log to file
-    log_file = Path(".deployment/deployment.log")
-    log_file.parent.mkdir(exist_ok=True)
-    with open(log_file, "a", encoding="utf-8") as f:
-        f.write(f"[{timestamp}] {prefix}: {message}\n")
+    # Read file content
+    with open(local_path, 'r', encoding='utf-8') as f:
+        content = f.read()
 
-def run_command(cmd, description="", timeout=120):
-    """Execute shell command and return success status"""
-    try:
-        log(description or f"Executing: {cmd}")
-        result = subprocess.run(
-            cmd,
-            shell=True,
-            capture_output=True,
-            text=True,
-            timeout=timeout
+    # API endpoint
+    url = f"https://www.pythonanywhere.com/api/v0/user/{USERNAME}/files/path{remote_path}"
+
+    headers = {
+        'Authorization': f'Token {PAW_TOKEN}',
+    }
+
+    # Try POST first (create new file) with multipart form data
+    response = requests.post(
+        url,
+        headers=headers,
+        files={'content': content}
+    )
+
+    if response.status_code in [200, 201]:
+        return True, f"Uploaded (POST)"
+
+    # If POST fails, try PUT (update existing file) with raw data
+    elif response.status_code in [400, 404]:
+        response = requests.put(
+            url,
+            headers=headers,
+            data=content.encode('utf-8')
         )
 
-        if result.returncode == 0:
-            if description:
-                log(f"{description} completed successfully", "SUCCESS")
-            return True, result.stdout.strip()
+        if response.status_code in [200, 201, 204]:
+            return True, f"Updated (PUT)"
         else:
-            log(f"Command failed: {result.stderr}", "ERROR")
-            return False, result.stderr.strip()
-    except subprocess.TimeoutExpired:
-        log(f"Command timed out after {timeout} seconds", "ERROR")
-        return False, ""
-    except Exception as e:
-        log(f"Error executing command: {e}", "ERROR")
-        return False, str(e)
-
-def check_git_status():
-    """Check if there are uncommitted changes"""
-    success, output = run_command("git status --short", "Checking git status")
-    if success and output:
-        log("Uncommitted changes detected:", "WARNING")
-        for line in output.split("\n"):
-            if line.strip():
-                log(f"  {line}", "WARNING")
-        response = input(f"{Color.YELLOW}Continue with deployment anyway? (y/n): {Color.ENDC}")
-        return response.lower() == "y"
-    return True
-
-def deploy():
-    """Main deployment process"""
-    log("=" * 60, "HEADER")
-    log("NovaView Landing Page - Automated Deployment", "HEADER")
-    log("=" * 60, "HEADER")
-
-    # Step 1: Pre-deployment checks
-    log("Step 1: Pre-deployment checks", "HEADER")
-    if not check_git_status():
-        log("Deployment cancelled by user", "WARNING")
-        return False
-
-    # Step 2: Local updates
-    log("Step 2: Pulling latest changes locally", "HEADER")
-    success, output = run_command("git pull origin master", "Pulling latest changes from git")
-    if not success:
-        log("Failed to pull latest changes", "ERROR")
-        return False
-    log(f"Git output: {output}", "INFO")
-
-    # Step 3: Remote deployment
-    log("Step 3: Deploying to PythonAnywhere", "HEADER")
-
-    ssh_commands = (
-        "cd /home/yanivbl/apps/eguidesearches-novaview && "
-        "git pull origin master && "
-        "echo 'Remote deployment completed' && "
-        "head -1 .git/logs/HEAD"
-    )
-
-    success, output = run_command(
-        f'ssh yanivbl@ssh.pythonanywhere.com "{ssh_commands}"',
-        "Executing remote deployment commands",
-        timeout=60
-    )
-
-    if not success:
-        log("Remote deployment failed", "ERROR")
-        return False
-
-    log("Remote git pull successful", "SUCCESS")
-
-    # Step 4: WSGI reload
-    log("Step 4: Reloading WSGI application", "HEADER")
-    success, output = run_command(
-        'ssh yanivbl@ssh.pythonanywhere.com "touch /var/www/www_eguidesearches_com_wsgi.py"',
-        "Touching WSGI file to trigger reload",
-        timeout=30
-    )
-
-    if not success:
-        log("Failed to reload WSGI application", "ERROR")
-        return False
-
-    log("WSGI application reloaded successfully", "SUCCESS")
-
-    # Step 5: Verification
-    log("Step 5: Verifying deployment", "HEADER")
-    success, output = run_command(
-        'ssh yanivbl@ssh.pythonanywhere.com "cd /home/yanivbl/apps/eguidesearches-novaview && git log -1 --oneline"',
-        "Checking remote git log",
-        timeout=30
-    )
-
-    if success:
-        log(f"Latest remote commit: {output}", "SUCCESS")
+            return False, f"HTTP {response.status_code}: {response.text[:200]}"
     else:
-        log("Could not verify deployment (SSH might not be fully configured)", "WARNING")
+        return False, f"HTTP {response.status_code}: {response.text[:200]}"
 
-    # Step 6: Summary
-    log("=" * 60, "HEADER")
-    log("Deployment completed successfully!", "SUCCESS")
-    log("=" * 60, "HEADER")
-    log("Production URL: https://www.eguidesearches.com", "INFO")
-    log("Deployment log: .deployment/deployment.log", "INFO")
+def reload_webapp():
+    """Reload the PythonAnywhere web app"""
+    url = f"https://www.pythonanywhere.com/api/v0/user/{USERNAME}/webapps/{DOMAIN}/reload/"
 
-    return True
+    headers = {
+        'Authorization': f'Token {PAW_TOKEN}',
+    }
+
+    response = requests.post(url, headers=headers)
+    return response.status_code == 200
+
+def verify_deployment():
+    """Verify deployment by checking production"""
+    time.sleep(10)  # Wait for server to fully reload
+
+    try:
+        response = requests.get(
+            f"https://{DOMAIN}/?kw=test&img=true&variant=b",
+            headers={'Cache-Control': 'no-cache'},
+            timeout=15
+        )
+
+        # Check if variant B has no images (our recent change)
+        has_images = '<div id="images-section"' in response.text
+
+        return response.status_code == 200, has_images
+    except Exception as e:
+        return False, None
 
 def main():
-    """Main entry point"""
-    try:
-        # Ensure .deployment directory exists
-        Path(".deployment").mkdir(exist_ok=True)
+    print("=" * 70)
+    print("DEPLOYING TO PYTHONANYWHERE")
+    print("=" * 70)
+    print(f"\nTarget: {DOMAIN}")
+    print(f"Path: {APP_PATH}")
+    print(f"Files: {len(FILES_TO_DEPLOY)}")
+    print()
 
-        # Run deployment
-        success = deploy()
+    uploaded = 0
+    failed = 0
+    errors = []
 
-        # Exit with appropriate code
-        sys.exit(0 if success else 1)
+    # Upload all files
+    for i, relative_path in enumerate(FILES_TO_DEPLOY, 1):
+        local_path = PROJECT_ROOT / relative_path
+        remote_path = f"{APP_PATH}/{relative_path}"
 
-    except KeyboardInterrupt:
-        log("Deployment cancelled by user", "WARNING")
-        sys.exit(1)
-    except Exception as e:
-        log(f"Unexpected error: {e}", "ERROR")
-        sys.exit(1)
+        print(f"[{i}/{len(FILES_TO_DEPLOY)}] {relative_path}...", end=" ")
 
-if __name__ == "__main__":
-    main()
+        if not local_path.exists():
+            print(f"SKIP (not found)")
+            failed += 1
+            errors.append(f"{relative_path}: File not found locally")
+            continue
+
+        success, message = upload_file(local_path, remote_path)
+
+        if success:
+            print(f"OK ({message})")
+            uploaded += 1
+        else:
+            print(f"FAILED ({message})")
+            failed += 1
+            errors.append(f"{relative_path}: {message}")
+
+    print()
+    print("=" * 70)
+    print(f"Upload Summary: {uploaded} succeeded, {failed} failed")
+    print("=" * 70)
+
+    if errors:
+        print("\nErrors:")
+        for error in errors:
+            print(f"  - {error}")
+        print()
+
+    if uploaded == 0:
+        print("\nDEPLOYMENT FAILED: No files uploaded")
+        return 1
+
+    # Reload web app
+    print("\nReloading web app...", end=" ")
+    if reload_webapp():
+        print("OK")
+    else:
+        print("FAILED")
+        print("Warning: Files uploaded but reload failed")
+        print("Manually reload via PythonAnywhere web interface")
+        return 1
+
+    # Verify deployment
+    print("\nVerifying deployment (waiting 10s for server restart)...", end=" ")
+    success, has_images = verify_deployment()
+
+    if success:
+        print("OK")
+        print(f"  Variant B has images: {has_images}")
+        if has_images:
+            print("  WARNING: Expected no images in variant B")
+    else:
+        print("FAILED")
+        print("  Could not reach production URL")
+
+    print()
+    print("=" * 70)
+    print("DEPLOYMENT COMPLETE")
+    print("=" * 70)
+    print(f"\nProduction URL: https://{DOMAIN}/?kw=test&img=true")
+    print(f"Variant A: https://{DOMAIN}/?kw=test&img=true&variant=a")
+    print(f"Variant B: https://{DOMAIN}/?kw=test&img=true&variant=b")
+    print("\nNote: Use Ctrl+Shift+R to bypass browser cache when testing")
+
+    return 0
+
+if __name__ == '__main__':
+    exit(main())
