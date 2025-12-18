@@ -1,9 +1,10 @@
 # NovaView Landing Page System - Build Status
 
-**Project:** New Landing Page System (new-lp)
+**Project:** NovaView Landing Page System
 **Repository:** https://github.com/yanivbarlev/novaview-lp
-**Last Updated:** 2025-12-06
-**Status:** ✅ Ready for Testing (Not yet deployed to PythonAnywhere)
+**Last Updated:** 2025-12-07
+**Status:** ✅ DEPLOYED AND LIVE on PythonAnywhere
+**Production URL:** https://www.eguidesearches.com
 
 ## Overview
 
@@ -547,70 +548,116 @@ python app.py
 
 Server starts on http://localhost:5000
 
-## Deployment to PythonAnywhere
+## Deployment to PythonAnywhere - ✅ COMPLETED
 
-### Prerequisites
-- PythonAnywhere account
-- API token
-- Google API credentials
+### Production Configuration (www.eguidesearches.com)
 
-### Deployment Steps
+**Deployment Date:** 2025-12-07
+**Status:** ✅ LIVE and working correctly
 
-**1. Clone Repository:**
-```bash
-cd ~/
-git clone https://github.com/yanivbarlev/novaview-lp.git
-```
-
-**2. Install Dependencies:**
-```bash
-cd ~/novaview-lp
-pip3 install --user -r requirements.txt
-```
-
-**3. Create .env File:**
-```bash
-nano .env
-# Add:
-# GOOGLE_API_KEY=your_key
-# GOOGLE_CX=your_cx_id
-```
-
-**4. Configure WSGI File:**
-Edit `/var/www/yourusername_pythonanywhere_com_wsgi.py`:
+**WSGI Configuration:**
+File: `/var/www/www_eguidesearches_com_wsgi.py`
 ```python
-import sys
-path = '/home/yourusername/novaview-lp'
-if path not in sys.path:
-    sys.path.append(path)
+activate_this = '/home/yanivbl/.virtualenvs/mysite-virtualen/bin/activate_this.py'
+with open(activate_this) as file_:
+    exec(file_.read(), dict(__file__=activate_this))
 
+import sys
+import os
+from dotenv import load_dotenv
+
+# Add your project directory to the sys.path
+project_home = '/home/yanivbl/apps/eguidesearches-novaview'
+if project_home not in sys.path:
+    sys.path.insert(0, project_home)
+
+# Load environment variables
+load_dotenv(os.path.join(project_home, '.env'))
+
+# Import Flask app
 from app import app as application
 ```
 
-**5. Set Working Directory:**
-In PythonAnywhere web app settings:
-- Working directory: `/home/yourusername/novaview-lp`
-- Static files: `/static/` → `/home/yourusername/novaview-lp/static/`
+**Web App Settings:**
+- **Source code:** `/home/yanivbl/apps/eguidesearches-novaview`
+- **Working directory:** `/home/yanivbl/apps/eguidesearches-novaview`
+- **Static files:** `/static/` → `/home/yanivbl/apps/eguidesearches-novaview/static/`
+- **Python version:** 3.10
+- **Virtualenv:** `/home/yanivbl/.virtualenvs/mysite-virtualen`
 
-**6. Reload Web App:**
-Click "Reload" button in PythonAnywhere web tab
+**Images Directory:**
+- **Location:** `/home/yanivbl/apps/eguidesearches-novaview/images/`
+- **Count:** 5,977 cached images (uploaded from local development)
+- **Format:** Optimized WebP files (~25KB each)
+- **Source:** Migrated from previous steven-lp project
+- **Cache TTL:** 100 days
 
-### Post-Deployment Testing
-- Test landing page: `https://yourdomain.com/?kw=test&img=true`
-- Test thank you page: `https://yourdomain.com/thankyou-downloadmanager.html?source=novaview`
-- Test legal pages
-- Verify GCLID tracking
-- Check server logs for errors
+**Environment Variables (.env):**
+```env
+GOOGLE_API_KEY=<configured>
+GOOGLE_CX=<configured>
+GOOGLE_API_KEY_BACKUP=<configured>
+GOOGLE_CX_BACKUP=<configured>
+```
 
-## Next Steps (Not Yet Implemented)
+### Post-Deployment Testing - ✅ ALL PASSED
 
-1. **Deploy to PythonAnywhere**
-   - Upload repository
-   - Configure WSGI
-   - Test live URLs
-   - Verify conversion tracking
+**Landing Pages:**
+- ✅ `https://www.eguidesearches.com/?kw=pokemon&img=true` - Images display immediately
+- ✅ `https://www.eguidesearches.com/?kw=chrome&img=true` - Working correctly
+- ✅ Cache HIT on all tested keywords (no Google API calls needed)
 
-2. **Performance Optimization**
+**Image Serving:**
+- ✅ `https://www.eguidesearches.com/image/pokemon_1.webp` - Serves correctly (downloads when accessed directly)
+- ✅ Images load instantly on landing pages
+- ✅ All 5,977 images accessible
+
+**API Endpoints:**
+- ✅ `/api/search?kw=pokemon` - Returns cached images
+- ✅ `/api/track/click` - CTA tracking working
+- ✅ `/api/track/exit-popup` - Exit popup tracking working
+
+**Other Pages:**
+- ✅ `/thankyou-downloadmanager.html?source=novaview&gclid=test` - Working
+- ✅ Legal pages (privacy, terms, eula, etc.) - All working
+
+**Performance:**
+- ✅ Page load: <0.1s (no server-side blocking on images)
+- ✅ Images display immediately (cache HIT)
+- ✅ No Google API calls needed for cached keywords
+
+### Image Cache Migration Details
+
+**Upload Method:** ZIP file upload via PythonAnywhere Files interface
+- **Source:** `C:\Users\User\Desktop\novaview-lp\novaview-lp\images\images.zip`
+- **ZIP Size:** ~150MB (estimated)
+- **ZIP Structure:** `home/yanivbl/apps/eguidesearches/steven-lp/images/*.webp` (old path)
+- **Extraction Commands:**
+```bash
+cd /home/yanivbl/apps/eguidesearches-novaview/
+unzip -q images.zip
+mkdir -p images
+mv home/yanivbl/apps/eguidesearches/steven-lp/images/* images/
+rm -rf home/
+rm images.zip
+find images/ -type d -exec chmod 755 {} \;
+find images/ -type f -exec chmod 644 {} \;
+```
+
+**Verification:**
+```bash
+find images/ -type f \( -name "*.webp" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" \) | wc -l
+# Result: 5977 files
+```
+
+**Benefits:**
+- Saves ~6,000 Google API calls
+- Instant image loading for all cached keywords
+- No API quota concerns for cached content
+
+## Next Steps (Future Enhancements)
+
+1. **Performance Optimization**
    - Implement CDN for static assets
    - Add response compression
    - Optimize image loading
@@ -935,6 +982,7 @@ The following were IMPROVED in the new version (not missing):
 
 ---
 
-**Status:** ✅ Build Complete - Ready for Testing
-**Next Milestone:** Deploy to PythonAnywhere
-**Estimated Deployment Time:** 30-60 minutes
+**Status:** ✅ DEPLOYED AND LIVE
+**Production URL:** https://www.eguidesearches.com
+**Deployment Date:** 2025-12-07
+**Next Milestone:** Monitor production performance and add missing routes from old system (/nova, /api/health, /api/cache/stats)

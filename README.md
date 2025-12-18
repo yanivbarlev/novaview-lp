@@ -38,31 +38,36 @@ Total: ~36KB of code (excluding images and templates)
 | Total code | 1,661+ lines | ~1,250 lines | 25% reduction |
 | Files | Monolithic | Modular | Better organization |
 
-## Essential Routes (6 Total)
+## Essential Routes (7 Total)
 
 1. **`/`** - Main landing page
    - Parameters: `kw` (keyword), `img` (true/false), `gclid`
    - Browser-specific personalization
    - Async image loading
 
-2. **`/api/search`** - Image search API
+2. **`/stackfree`** - StackFree landing page
+   - Identical logic to main landing page
+   - Same parameters and behavior
+   - Uses same template (landing.html)
+
+3. **`/api/search`** - Image search API
    - Server-side proxy for Google API
    - Three-tier caching system
    - Returns JSON with images array
 
-3. **`/image/<filename>`** - Image serving
+4. **`/image/<filename>`** - Image serving
    - Serves optimized images from cache
    - ~25KB per image
 
-4. **`/api/track/click`** - CTA click tracking
+5. **`/api/track/click`** - CTA click tracking
    - Tracks button clicks with attribution
    - Logs GCLID for conversion tracking
 
-5. **`/api/track/exit-popup`** - Exit popup tracking
+6. **`/api/track/exit-popup`** - Exit popup tracking
    - Tracks popup impressions and clicks
    - Session-based display limiting
 
-6. **`/post_install/`** - Post-install conversion page
+7. **`/post_install/`** - Post-install conversion page
    - Google Tag conversion tracking
    - Thank you page with conversion event
 
@@ -242,12 +247,23 @@ Currently set to `AW-1006081641`. Update in `config.py` if needed.
 
 ## Documentation References
 
-- **Implementation Guide:** `../documents/stackfree_complete_implementation_guide.md`
-- **Deployment Guide:** `../documents/NEW_LP_DEPLOYMENT_GUIDE.md`
-- **Old System:** `../app.py` (for reference)
+### Essential Guides
+- **CLAUDE.md** - Project overview and development practices (read this first!)
+- **TROUBLESHOOTING.md** - Common issues and solutions
+- **DEPLOYMENT_POSTMORTEM.md** - Lessons learned from deployment issues
+
+### Additional Documentation
+- **Implementation Guide:** `documents/stackfree_complete_implementation_guide.md`
+- **Deployment Guide:** `documents/NEW_LP_DEPLOYMENT_GUIDE.md`
+- **Build Status:** `documents/build-status.md`
+
+### Quick Links
+- **Having issues?** → See TROUBLESHOOTING.md
+- **Deploying?** → See DEPLOYMENT_POSTMORTEM.md (Deployment Checklist section)
+- **New to project?** → See CLAUDE.md
 
 ---
 
 **Implementation Date:** 2025-12-05
-**Status:** Ready for Deployment ✅
-**Confidence:** High (battle-tested code extracted from working system)
+**Status:** Production ✅
+**Latest Update:** 2025-12-09 (Added A/B testing, fixed deployment issues, added comprehensive documentation)

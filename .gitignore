@@ -35,3 +35,7 @@ images/*.png
 # Deployment
 .deployment/
 !.deployment/README.md
+
+# Windows pitfalls
+nul
+NUL
