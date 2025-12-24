@@ -1,50 +1,17 @@
 /**
  * A/B Test Variant Assignment
- * Assigns user to variant A or B on first visit within session
- * Stores assignment in sessionStorage for session persistence
+ * DISABLED - A/B test is off, all users get variant A
+ * This script is kept for potential future use
  */
 
 (function() {
-    const STORAGE_KEY = 'ab_variant';
-    const SPLIT_RATIO = 0.5;  // 50-50 split
+    // A/B testing is disabled - no client-side assignment or redirection
+    // The server always assigns variant 'a' when AB_TEST_ENABLED = False
 
-    function getOrAssignVariant() {
-        // Check for existing assignment in sessionStorage
-        let variant = sessionStorage.getItem(STORAGE_KEY);
+    // Make variant 'a' available globally for any scripts that reference it
+    window.abVariant = 'a';
 
-        if (!variant) {
-            // New visitor within session - assign random variant
-            variant = Math.random() < SPLIT_RATIO ? 'a' : 'b';
-            sessionStorage.setItem(STORAGE_KEY, variant);
-        }
-
-        return variant;
-    }
-
-    function addVariantToUrl() {
-        const variant = getOrAssignVariant();
-        const urlParams = new URLSearchParams(window.location.search);
-
-        // Only add if not already present
-        if (!urlParams.has('variant')) {
-            urlParams.set('variant', variant);
-
-            // Reload with variant parameter (use replace to avoid back button issues)
-            const newUrl = window.location.pathname + '?' + urlParams.toString();
-            window.location.replace(newUrl);
-        }
-
-        // Store in localStorage for post_install tracking
-        localStorage.setItem('ab_variant', variant);
-    }
-
-    // Run on page load
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', addVariantToUrl);
-    } else {
-        addVariantToUrl();
-    }
-
-    // Make variant available globally
-    window.abVariant = getOrAssignVariant();
+    // Store in localStorage for consistency (though server controls assignment)
+    localStorage.setItem('ab_variant', 'a');
+    sessionStorage.setItem('ab_variant', 'a');
 })();
