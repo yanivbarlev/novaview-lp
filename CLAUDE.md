@@ -402,6 +402,10 @@ Add to web app settings or create `.env` file in working directory.
 
 ## A/B Testing Variant Assignment
 
+**CURRENT STATUS (2025-12-24): A/B Testing DISABLED - Variant A at 100%**
+
+**For enabling/disabling A/B tests, see [AB_TEST_TOGGLE_GUIDE.md](AB_TEST_TOGGLE_GUIDE.md)**
+
 ### Overview
 
 The application implements fair A/B testing with a three-tier variant assignment system:
