@@ -50,7 +50,7 @@ GOOGLE_TAG_ID = 'AW-1006081641'
 
 # Master toggle to enable/disable A/B test
 # Set to False to disable test and serve variant A to all users
-AB_TEST_ENABLED = True
+AB_TEST_ENABLED = False
 
 # Test metadata
 AB_TEST_NAME = 'landing_page_design_v1'
