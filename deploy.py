@@ -28,6 +28,9 @@ FILES_TO_DEPLOY = [
     'ab_testing/__init__.py',
     'ab_testing/ab_log_parser.py',
     'ab_testing/test_history.py',
+    # Static JavaScript files
+    'static/js/ab-test.js',
+    'static/js/exit-intent.js',
     # Templates
     'templates/ab_dashboard.html',
     'templates/index_variant_a.html',
