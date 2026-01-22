@@ -280,6 +280,137 @@ def stackfree_landing():
     return response
 
 
+# === ROUTE 2C: Trusted Landing Page ===
+@app.route('/trusted')
+def trusted_landing():
+    """
+    Trusted landing page with A/B testing support (identical logic to main landing page)
+
+    URL Parameters:
+        kw (str): Keyword for image search (default: 'trending')
+        img (str): 'true' to show images (default: false)
+        gclid (str): Google Click ID for conversion attribution
+        variant (str): A/B test variant ('a' or 'b')
+    """
+    # Extract and sanitize parameters
+    keyword = request.args.get('kw', 'trending').strip()
+    show_images = request.args.get('img', '').lower() == 'true'
+    gclid = request.args.get('gclid', '')
+
+    # Variant assignment with proper precedence:
+    # 1. URL parameter (explicit override)
+    # 2. Cookie (returning user)
+    # 3. Random 50/50 split (new user)
+    variant_param = request.args.get('variant', '').lower()
+    variant_cookie = request.cookies.get('ab_variant', '')
+
+    if variant_param in ['a', 'b']:
+        variant = variant_param  # URL parameter takes precedence
+    elif variant_cookie in ['a', 'b']:
+        variant = variant_cookie  # Use existing cookie
+    else:
+        # Random assignment for new users (50/50 split)
+        variant = random.choice(['a', 'b'])
+
+    # Validate and set default if needed (safety check)
+    if variant not in ['a', 'b']:
+        variant = 'a'
+
+    # Sanitize keyword (max 100 chars)
+    if not keyword or len(keyword) > 100:
+        keyword = 'trending'
+
+    # If A/B test disabled, force variant A
+    if not AB_TEST_ENABLED:
+        variant = 'a'
+
+    # Conditional image display logic
+    # Only show images if BOTH img=true AND kw parameter exist
+    has_kw_param = request.args.get('kw') is not None
+    show_images = show_images and has_kw_param
+
+    # Browser detection from User-Agent
+    user_agent = request.headers.get('User-Agent', 'Unknown')
+    browser_type = detect_browser_type(user_agent)
+
+    # Get client IP (respects proxy headers)
+    client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
+
+    # Bot detection - only log real users, skip bots/crawlers
+    user_is_bot = is_bot(user_agent)
+
+    # Log trusted page visit with variant (only for real users, not bots)
+    if not user_is_bot:
+        logger.info(
+            f'TRUSTED_PAGE keyword="{keyword}" gclid="{gclid}" variant="{variant}" '
+            f'show_images={show_images} has_kw_param={has_kw_param} '
+            f'browser="{browser_type}" user_agent="{user_agent[:100]}" ip="{client_ip}"'
+        )
+
+    # Use custom trusted.html template (not the variant templates)
+    template_name = 'trusted.html'
+
+    # Render template with NO server-side image fetching
+    # Images will load via JavaScript AJAX after page renders
+    response = make_response(render_template(template_name,
+                         keyword=keyword,
+                         gclid=gclid,
+                         show_images=show_images,
+                         browser_type=browser_type,
+                         variant=variant,
+                         ab_test_enabled=AB_TEST_ENABLED))
+
+    # Set cookie to track variant for conversion attribution
+    # Cookie expires in 30 days to handle delayed installations
+    response.set_cookie('ab_variant', variant, max_age=30*24*60*60, samesite='Lax')
+
+    return response
+
+
+# === ROUTE 2B: DEMO Page - Microsoft Product ===
+@app.route('/demo-microsoft')
+def demo_microsoft():
+    """
+    Demo landing page showing how the page would look when promoting a Microsoft product
+    This demonstrates the same design with a different product URL
+
+    URL Parameters:
+        kw (str): Keyword for image search (default: 'trending')
+        img (str): 'true' to show images (default: false)
+    """
+    # Extract and sanitize parameters
+    keyword = request.args.get('kw', 'trending').strip()
+    show_images = request.args.get('img', '').lower() == 'true'
+
+    # Sanitize keyword (max 100 chars)
+    if not keyword or len(keyword) > 100:
+        keyword = 'trending'
+
+    # Conditional image display logic
+    has_kw_param = request.args.get('kw') is not None
+    show_images = show_images and has_kw_param
+
+    # Browser detection from User-Agent
+    user_agent = request.headers.get('User-Agent', 'Unknown')
+    browser_type = detect_browser_type(user_agent)
+
+    logger.info(
+        f'DEMO_MICROSOFT keyword="{keyword}" show_images={show_images} '
+        f'browser="{browser_type}" user_agent="{user_agent[:100]}"'
+    )
+
+    # Render demo template with custom Microsoft product URL
+    # All users see variant 'a' for consistency in demo
+    response = make_response(render_template('demo_microsoft.html',
+                         keyword=keyword,
+                         show_images=show_images,
+                         browser_type=browser_type,
+                         demo_product_url='https://apps.microsoft.com/detail/9pff71p2vpmd?hl=en-us&gl=IL',
+                         demo_product_name='Microsoft App'))
+
+    return response
+
+
 # === ROUTE 3: Image Search API ===
 @app.route('/api/search')
 def api_search():
