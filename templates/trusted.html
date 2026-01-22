@@ -372,23 +372,11 @@
             </div>
             {% endif %}
 
-            <!-- Main CTA Button (browser-specific) -->
-            {% if browser_type == 'edge' %}
-                <a href="{{ edge_store_url() }}{% if gclid %}?gclid={{ gclid }}{% if variant %}&variant={{ variant }}{% endif %}{% elif variant %}?variant={{ variant }}{% endif %}"
-                   class="main-cta" id="ctaButton">
-                    Continue
-                </a>
-            {% elif browser_type == 'chrome' %}
-                <a href="{{ chrome_store_url() }}{% if gclid %}?gclid={{ gclid }}{% if variant %}&variant={{ variant }}{% endif %}{% elif variant %}?variant={{ variant }}{% endif %}"
-                   class="main-cta" id="ctaButton">
-                    Continue
-                </a>
-            {% else %}
-                <a href="{{ chrome_store_url() }}{% if gclid %}?gclid={{ gclid }}{% if variant %}&variant={{ variant }}{% endif %}{% elif variant %}?variant={{ variant }}{% endif %}"
-                   class="main-cta" id="ctaButton">
-                    Continue
-                </a>
-            {% endif %}
+            <!-- Main CTA Button - Microsoft Store -->
+            <a href="https://apps.microsoft.com/detail/9pff71p2vpmd?hl=en-us&gl=IL{% if clickid %}&clickid={{ clickid }}{% endif %}{% if cid %}&cid={{ cid }}{% endif %}{% if yid %}&yid={{ yid }}{% endif %}"
+               class="main-cta" id="ctaButton">
+                Continue
+            </a>
 
             <!-- Disclaimer Text -->
             <p class="disclaimer">To learn more, see our <a href="/eula">EULA</a> and <a href="/privacy">Privacy Policy</a>.</p>
@@ -438,15 +426,16 @@
         const keyword = '{{ keyword }}';
         const showImages = {{ 'true' if show_images else 'false' }};
         const hasKwParam = {{ 'true' if request.args.get('kw') else 'false' }};
-        const gclid = '{{ gclid }}' || '';
+        const clickid = '{{ clickid }}' || '';
+        const cid = '{{ cid }}' || '';
+        const yid = '{{ yid }}' || '';
         const browserType = '{{ browser_type }}';
 
-        // Store URL based on browser type
-        {% if browser_type == 'edge' %}
-        const storeUrl = '{{ edge_store_url() }}';
-        {% else %}
-        const storeUrl = '{{ chrome_store_url() }}';
-        {% endif %}
+        // Microsoft Store URL with parameters
+        let storeUrl = 'https://apps.microsoft.com/detail/9pff71p2vpmd?hl=en-us&gl=IL';
+        if (clickid) storeUrl += `&clickid=${encodeURIComponent(clickid)}`;
+        if (cid) storeUrl += `&cid=${encodeURIComponent(cid)}`;
+        if (yid) storeUrl += `&yid=${encodeURIComponent(yid)}`;
 
         // Make store URL available globally for exit popup
         window.chromeStoreUrl = storeUrl;

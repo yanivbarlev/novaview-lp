@@ -284,18 +284,22 @@ def stackfree_landing():
 @app.route('/trusted')
 def trusted_landing():
     """
-    Trusted landing page with A/B testing support (identical logic to main landing page)
+    Trusted landing page with Microsoft Store redirect
 
     URL Parameters:
         kw (str): Keyword for image search (default: 'trending')
         img (str): 'true' to show images (default: false)
-        gclid (str): Google Click ID for conversion attribution
+        clickid (str): Click ID for Microsoft Store attribution
+        cid (str): Campaign ID for tracking
+        yid (str): Yahoo ID for tracking
         variant (str): A/B test variant ('a' or 'b')
     """
     # Extract and sanitize parameters
     keyword = request.args.get('kw', 'trending').strip()
     show_images = request.args.get('img', '').lower() == 'true'
-    gclid = request.args.get('gclid', '')
+    clickid = request.args.get('clickid', '')
+    cid = request.args.get('cid', '')
+    yid = request.args.get('yid', '')
 
     # Variant assignment with proper precedence:
     # 1. URL parameter (explicit override)
@@ -342,7 +346,7 @@ def trusted_landing():
     # Log trusted page visit with variant (only for real users, not bots)
     if not user_is_bot:
         logger.info(
-            f'TRUSTED_PAGE keyword="{keyword}" gclid="{gclid}" variant="{variant}" '
+            f'TRUSTED_PAGE keyword="{keyword}" clickid="{clickid}" cid="{cid}" yid="{yid}" variant="{variant}" '
             f'show_images={show_images} has_kw_param={has_kw_param} '
             f'browser="{browser_type}" user_agent="{user_agent[:100]}" ip="{client_ip}"'
         )
@@ -354,7 +358,9 @@ def trusted_landing():
     # Images will load via JavaScript AJAX after page renders
     response = make_response(render_template(template_name,
                          keyword=keyword,
-                         gclid=gclid,
+                         clickid=clickid,
+                         cid=cid,
+                         yid=yid,
                          show_images=show_images,
                          browser_type=browser_type,
                          variant=variant,
