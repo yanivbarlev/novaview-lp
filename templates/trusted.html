@@ -440,17 +440,6 @@
         // Make store URL available globally for exit popup
         window.chromeStoreUrl = storeUrl;
 
-        // Store GCLID in localStorage for attribution
-        if (gclid) {
-            localStorage.setItem('gclid', gclid);
-            console.log('GCLID stored:', gclid);
-        }
-
-        // Get stored GCLID
-        function getStoredGclid() {
-            return localStorage.getItem('gclid') || gclid || '';
-        }
-
         // Load images asynchronously
         async function loadImages(searchKeyword) {
             try {
@@ -504,19 +493,6 @@
 
                 // Make image clickable - same behavior as CTA button
                 img.addEventListener('click', function() {
-                    const trackedGclid = getStoredGclid();
-                    const trackedVariant = window.abTestVariant || '';
-
-                    // Build URL with gclid and variant
-                    let finalStoreUrl = storeUrl;
-                    if (trackedGclid && trackedVariant) {
-                        finalStoreUrl = `${storeUrl}?gclid=${trackedGclid}&variant=${trackedVariant}`;
-                    } else if (trackedGclid) {
-                        finalStoreUrl = `${storeUrl}?gclid=${trackedGclid}`;
-                    } else if (trackedVariant) {
-                        finalStoreUrl = `${storeUrl}?variant=${trackedVariant}`;
-                    }
-
                     // Track image click
                     fetch('/api/track/click', {
                         method: 'POST',
@@ -524,14 +500,15 @@
                         body: JSON.stringify({
                             button_id: `image-${index + 1}`,
                             keyword: keyword,
-                            gclid: trackedGclid,
-                            variant: window.abTestVariant,
+                            clickid: clickid,
+                            cid: cid,
+                            yid: yid,
                             timestamp: new Date().toISOString()
                         })
                     }).catch(err => console.log('Tracking error:', err));
 
                     // Open store in new tab
-                    const chromeStoreTab = window.open(finalStoreUrl, '_blank');
+                    const chromeStoreTab = window.open(storeUrl, '_blank');
 
                     // Start exit intent monitoring
                     if (chromeStoreTab && window.exitIntentPopup) {
@@ -565,9 +542,6 @@
         document.getElementById('ctaButton').addEventListener('click', function(e) {
             e.preventDefault(); // Prevent default link behavior
 
-            const storeUrl = this.href;
-            const trackedGclid = getStoredGclid();
-
             console.log('CTA clicked - opening store in new tab');
 
             // Track click event
@@ -577,8 +551,9 @@
                 body: JSON.stringify({
                     button_id: 'main-cta',
                     keyword: keyword,
-                    gclid: trackedGclid,
-                    variant: window.abTestVariant,
+                    clickid: clickid,
+                    cid: cid,
+                    yid: yid,
                     timestamp: new Date().toISOString()
                 })
             }).catch(err => console.log('Tracking error:', err));
