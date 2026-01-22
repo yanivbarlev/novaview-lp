@@ -46,6 +46,7 @@ FILES_TO_DEPLOY = [
     'templates/legal_uninstall.html',
     'templates/thankyou.html',
     'templates/thankyou-test.html',
+    'templates/trusted.html',
 ]
 
 def upload_file(local_path, remote_path):
