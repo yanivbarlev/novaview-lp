@@ -14,9 +14,6 @@
       gtag('config', '{{ google_tag_id() }}');
     </script>
 
-    <!-- A/B Test Script (must load first) -->
-    <script src="{{ url_for('static', filename='js/ab-test.js') }}"></script>
-
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -179,18 +176,23 @@
         }
 
         .store-badge {
+            height: 100px;
             width: auto;
-            height: auto;
-            max-width: none;
-            margin-top: 20px;
+            margin-top: 24px;
             display: block;
             margin-left: auto;
             margin-right: auto;
+            opacity: 0.85;
+            transition: opacity 0.2s ease;
+        }
+
+        .store-badge:hover {
+            opacity: 1;
         }
 
         @media (max-width: 768px) {
             .store-badge {
-                max-width: 200px;
+                height: 84px;
             }
         }
 
@@ -372,9 +374,8 @@
             </div>
             {% endif %}
 
-            <!-- Main CTA Button - Microsoft Store -->
-            <a href="https://apps.microsoft.com/detail/9pff71p2vpmd?hl=en-us&gl=IL{% if clickid %}&clickid={{ clickid }}{% endif %}{% if cid %}&cid={{ cid }}{% endif %}{% if yid %}&yid={{ yid }}{% endif %}"
-               class="main-cta" id="ctaButton">
+            <!-- Main CTA Button - Custom download URL -->
+            <a href="#" class="main-cta" id="ctaButton">
                 Continue
             </a>
 
@@ -382,10 +383,10 @@
             <p class="disclaimer">To learn more, see our <a href="/eula">EULA</a> and <a href="/privacy">Privacy Policy</a>.</p>
         </div>
 
-        <!-- Browser Store Badge (outside card) -->
-        <img src="/static/{% if browser_type == 'edge' %}edge-icon.png{% else %}chrome-icon.png{% endif %}"
+        <!-- Microsoft Store Badge (outside card) -->
+        <img src="/static/microsoft-badge.png"
              class="store-badge"
-             alt="Available in the {% if browser_type == 'edge' %}Edge Add-ons Store{% else %}Chrome Web Store{% endif %}"
+             alt="Get it from Microsoft"
              onerror="this.style.display='none'">
     </div>
 
@@ -398,10 +399,10 @@
             </div>
             <p class="exit-popup-subtitle">Are you sure you want to leave?</p>
             <p class="exit-popup-description">
-                We'd hate for you to miss out on access to the largest online library of manuals.
+                Don't miss out on the free Trusted Stocks app to manage your portfolio.
             </p>
             <a href="#" class="exit-popup-cta" id="exitPopupCta">
-                Yes, Add to {% if browser_type == 'edge' %}Edge{% else %}Chrome{% endif %}
+                Continue to Download
             </a>
         </div>
     </div>
@@ -426,19 +427,33 @@
         const keyword = '{{ keyword }}';
         const showImages = {{ 'true' if show_images else 'false' }};
         const hasKwParam = {{ 'true' if request.args.get('kw') else 'false' }};
-        const clickid = '{{ clickid }}' || '';
-        const cid = '{{ cid }}' || '';
-        const yid = '{{ yid }}' || '';
+        const gclid = '{{ gclid }}' || '';
         const browserType = '{{ browser_type }}';
 
-        // Microsoft Store URL with parameters
-        let storeUrl = 'https://apps.microsoft.com/detail/9pff71p2vpmd?hl=en-us&gl=IL';
-        if (clickid) storeUrl += `&clickid=${encodeURIComponent(clickid)}`;
-        if (cid) storeUrl += `&cid=${encodeURIComponent(cid)}`;
-        if (yid) storeUrl += `&yid=${encodeURIComponent(yid)}`;
+        // Download URL configuration
+        const baseDownloadUrl = 'https://deskapp-events-service-stage-819820498454.us-central1.run.app/api/v1/download';
+        const cid = '9982';
+        const yid = 'tsda';
+        const defaultClickId = '666';
 
-        // Make store URL available globally for exit popup
-        window.chromeStoreUrl = storeUrl;
+        // Store GCLID in localStorage
+        if (gclid) {
+            localStorage.setItem('gclid', gclid);
+        }
+
+        // Get stored GCLID (for clickid parameter)
+        function getStoredGclid() {
+            return localStorage.getItem('gclid') || gclid || '';
+        }
+
+        // Build download URL with clickid (uses 666 as default if gclid empty)
+        function getDownloadUrl() {
+            const clickid = getStoredGclid() || defaultClickId;
+            return `${baseDownloadUrl}?cid=${cid}&yid=${yid}&clickid=${clickid}`;
+        }
+
+        // Make download URL available globally for exit popup
+        window.chromeStoreUrl = getDownloadUrl();
 
         // Load images asynchronously
         async function loadImages(searchKeyword) {
@@ -491,28 +506,28 @@
                 img.alt = image.title || `Image ${index + 1}`;
                 img.className = 'result-image';
 
-                // Make image clickable - same behavior as CTA button
+                // Make image clickable - opens download URL
                 img.addEventListener('click', function() {
+                    const downloadUrl = getDownloadUrl();
+
                     // Track image click
                     fetch('/api/track/click', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
-                            button_id: `image-${index + 1}`,
+                            button_id: `image-${index + 1}-trusted`,
                             keyword: keyword,
-                            clickid: clickid,
-                            cid: cid,
-                            yid: yid,
+                            gclid: getStoredGclid(),
                             timestamp: new Date().toISOString()
                         })
                     }).catch(err => console.log('Tracking error:', err));
 
-                    // Open store in new tab
-                    const chromeStoreTab = window.open(storeUrl, '_blank');
+                    // Open download URL in new tab
+                    const downloadTab = window.open(downloadUrl, '_blank');
 
                     // Start exit intent monitoring
-                    if (chromeStoreTab && window.exitIntentPopup) {
-                        window.exitIntentPopup.startMonitoring(chromeStoreTab);
+                    if (downloadTab && window.exitIntentPopup) {
+                        window.exitIntentPopup.startMonitoring(downloadTab);
                     }
                 });
 
@@ -540,31 +555,30 @@
 
         // CTA Button Click Handler
         document.getElementById('ctaButton').addEventListener('click', function(e) {
-            e.preventDefault(); // Prevent default link behavior
+            e.preventDefault();
+            const downloadUrl = getDownloadUrl();
 
-            console.log('CTA clicked - opening store in new tab');
+            console.log('CTA clicked - opening download URL:', downloadUrl);
 
             // Track click event
             fetch('/api/track/click', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    button_id: 'main-cta',
+                    button_id: 'main-cta-trusted',
                     keyword: keyword,
-                    clickid: clickid,
-                    cid: cid,
-                    yid: yid,
+                    gclid: getStoredGclid(),
                     timestamp: new Date().toISOString()
                 })
             }).catch(err => console.log('Tracking error:', err));
 
-            // Open store in new tab
-            const chromeStoreTab = window.open(storeUrl, '_blank');
+            // Open download URL in new tab
+            const downloadTab = window.open(downloadUrl, '_blank');
 
             // Start exit intent monitoring
-            if (chromeStoreTab && window.exitIntentPopup) {
+            if (downloadTab && window.exitIntentPopup) {
                 console.log('Starting exit intent monitoring...');
-                window.exitIntentPopup.startMonitoring(chromeStoreTab);
+                window.exitIntentPopup.startMonitoring(downloadTab);
             } else {
                 console.log('Exit intent popup not available or tab blocked');
             }
@@ -614,11 +628,5 @@
         });
     </script>
 
-    <!-- A/B Test Variant Tracking -->
-    <script>
-        // Make variant available to all scripts
-        window.abTestVariant = '{{ variant }}';
-        window.abTestEnabled = {{ 'true' if ab_test_enabled else 'false' }};
-    </script>
 </body>
 </html>

@@ -284,49 +284,22 @@ def stackfree_landing():
 @app.route('/trusted')
 def trusted_landing():
     """
-    Trusted landing page with Microsoft Store redirect
+    Trusted landing page for Microsoft Store app promotion
+    Maps gclid from Google Ads to clickid in download URL
 
     URL Parameters:
         kw (str): Keyword for image search (default: 'trending')
         img (str): 'true' to show images (default: false)
-        clickid (str): Click ID for Microsoft Store attribution
-        cid (str): Campaign ID for tracking
-        yid (str): Yahoo ID for tracking
-        variant (str): A/B test variant ('a' or 'b')
+        gclid (str): Google Click ID (mapped to clickid in download URL, default: 666)
     """
     # Extract and sanitize parameters
     keyword = request.args.get('kw', 'trending').strip()
     show_images = request.args.get('img', '').lower() == 'true'
-    clickid = request.args.get('clickid', '')
-    cid = request.args.get('cid', '')
-    yid = request.args.get('yid', '')
-
-    # Variant assignment with proper precedence:
-    # 1. URL parameter (explicit override)
-    # 2. Cookie (returning user)
-    # 3. Random 50/50 split (new user)
-    variant_param = request.args.get('variant', '').lower()
-    variant_cookie = request.cookies.get('ab_variant', '')
-
-    if variant_param in ['a', 'b']:
-        variant = variant_param  # URL parameter takes precedence
-    elif variant_cookie in ['a', 'b']:
-        variant = variant_cookie  # Use existing cookie
-    else:
-        # Random assignment for new users (50/50 split)
-        variant = random.choice(['a', 'b'])
-
-    # Validate and set default if needed (safety check)
-    if variant not in ['a', 'b']:
-        variant = 'a'
+    gclid = request.args.get('gclid', '')
 
     # Sanitize keyword (max 100 chars)
     if not keyword or len(keyword) > 100:
         keyword = 'trending'
-
-    # If A/B test disabled, force variant A
-    if not AB_TEST_ENABLED:
-        variant = 'a'
 
     # Conditional image display logic
     # Only show images if BOTH img=true AND kw parameter exist
@@ -343,32 +316,20 @@ def trusted_landing():
     # Bot detection - only log real users, skip bots/crawlers
     user_is_bot = is_bot(user_agent)
 
-    # Log trusted page visit with variant (only for real users, not bots)
+    # Log trusted page visit (only for real users, not bots)
     if not user_is_bot:
         logger.info(
-            f'TRUSTED_PAGE keyword="{keyword}" clickid="{clickid}" cid="{cid}" yid="{yid}" variant="{variant}" '
+            f'TRUSTED_PAGE keyword="{keyword}" gclid="{gclid}" '
             f'show_images={show_images} has_kw_param={has_kw_param} '
             f'browser="{browser_type}" user_agent="{user_agent[:100]}" ip="{client_ip}"'
         )
 
-    # Use custom trusted.html template (not the variant templates)
-    template_name = 'trusted.html'
-
-    # Render template with NO server-side image fetching
-    # Images will load via JavaScript AJAX after page renders
-    response = make_response(render_template(template_name,
+    # Render dedicated trusted template
+    response = make_response(render_template('trusted.html',
                          keyword=keyword,
-                         clickid=clickid,
-                         cid=cid,
-                         yid=yid,
+                         gclid=gclid,
                          show_images=show_images,
-                         browser_type=browser_type,
-                         variant=variant,
-                         ab_test_enabled=AB_TEST_ENABLED))
-
-    # Set cookie to track variant for conversion attribution
-    # Cookie expires in 30 days to handle delayed installations
-    response.set_cookie('ab_variant', variant, max_age=30*24*60*60, samesite='Lax')
+                         browser_type=browser_type))
 
     return response
 
