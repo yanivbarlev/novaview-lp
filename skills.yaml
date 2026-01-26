@@ -1,0 +1,4 @@
+skills:
+  - package: https://github.com/remotion-dev/skills
+    skill: remotion-best-practices
+    version: "4.0.409"

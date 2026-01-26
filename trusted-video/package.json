@@ -1,0 +1,19 @@
+{
+  "name": "trusted-video",
+  "version": "1.0.0",
+  "description": "Remotion video showcasing the /trusted landing page development",
+  "scripts": {
+    "start": "npx remotion studio",
+    "build": "npx remotion render TrustedShowcase out/video.mp4",
+    "preview": "npx remotion preview"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.409",
+    "@remotion/transitions": "^4.0.409",
+    "@types/react": "^19.2.9",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "remotion": "^4.0.409",
+    "typescript": "^5.9.3"
+  }
+}
