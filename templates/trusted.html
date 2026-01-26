@@ -329,6 +329,391 @@
         }
 
         /* ========================================
+           BIG HELPER MODAL - Centered with Animation
+           ======================================== */
+        .big-helper-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .big-helper-overlay.show {
+            display: flex;
+        }
+
+        .big-helper-modal {
+            background: white;
+            border-radius: 16px;
+            max-width: 750px;
+            width: 95%;
+            padding: 30px 35px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            animation: fadeInUp 0.4s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .big-helper-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: #202125;
+            margin-bottom: 20px;
+        }
+
+        .big-helper-progress {
+            background: #e0e0e0;
+            border-radius: 20px;
+            height: 28px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .big-helper-progress-bar {
+            background: linear-gradient(90deg, #34a853, #4caf50);
+            height: 100%;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 500;
+            font-size: 14px;
+            animation: progressFill 2s ease-out forwards;
+            width: 0%;
+        }
+
+        @keyframes progressFill {
+            from { width: 0%; }
+            to { width: 85%; }
+        }
+
+        .big-helper-status {
+            color: #34a853;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+
+        .big-helper-content {
+            display: flex;
+            gap: 30px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+        }
+
+        .big-helper-steps {
+            flex: 1;
+        }
+
+        .big-helper-step {
+            margin-bottom: 20px;
+        }
+
+        .big-helper-step:last-child {
+            margin-bottom: 0;
+        }
+
+        .big-helper-step h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #202125;
+            margin-bottom: 6px;
+        }
+
+        .big-helper-step p {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        .big-helper-step p strong {
+            color: #1a73e8;
+        }
+
+        .big-helper-visual {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .big-helper-visual-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #202125;
+            margin-bottom: 15px;
+        }
+
+        /* Browser Mockup */
+        .browser-mockup {
+            background: #f1f3f4;
+            border-radius: 8px;
+            padding: 10px;
+            width: 100%;
+            max-width: 280px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .browser-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 8px;
+            background: #dee1e6;
+            border-radius: 6px 6px 0 0;
+            font-size: 14px;
+            color: #5f6368;
+        }
+
+        .toolbar-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .download-btn-mock {
+            background: #5f6368;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .download-panel-mock {
+            background: white;
+            border-radius: 0 0 6px 6px;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-top: none;
+        }
+
+        .download-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #5f6368;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        .download-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            position: relative;
+        }
+
+        .download-item-icon {
+            width: 32px;
+            height: 38px;
+            background: linear-gradient(135deg, #f8d775 0%, #f0c14b 100%);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 7px;
+            font-weight: bold;
+            color: #8b6914;
+            position: relative;
+        }
+
+        .download-item-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 8px;
+            height: 8px;
+            background: linear-gradient(135deg, #fff 50%, #e0b040 50%);
+            border-bottom-left-radius: 3px;
+        }
+
+        .download-item-icon::after {
+            content: 'MSIX';
+            margin-top: 6px;
+        }
+
+        .download-item-info {
+            flex: 1;
+        }
+
+        .download-item-name {
+            font-size: 12px;
+            font-weight: 500;
+            color: #202125;
+        }
+
+        .download-item-size {
+            font-size: 10px;
+            color: #5f6368;
+        }
+
+        .download-item-action {
+            width: 24px;
+            height: 24px;
+            color: #1a73e8;
+            font-size: 16px;
+        }
+
+        /* Animated Cursor - Click Effect */
+        .animated-cursor {
+            position: absolute;
+            bottom: 5px;
+            right: 30px;
+            width: 40px;
+            height: 40px;
+            z-index: 10;
+        }
+
+        .animated-cursor svg {
+            width: 100%;
+            height: 100%;
+            fill: #34a853;
+            filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.3));
+            animation: cursorBounce 1.2s ease-in-out infinite;
+        }
+
+        @keyframes cursorBounce {
+            0%, 100% {
+                transform: translate(0, 0) rotate(-15deg);
+            }
+            50% {
+                transform: translate(-5px, -10px) rotate(-15deg);
+            }
+        }
+
+        /* Click ripple effect */
+        .click-ripple {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            background: rgba(52, 168, 83, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            animation: ripple 1.2s ease-out infinite;
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(2.5);
+                opacity: 0;
+            }
+        }
+
+        /* Green pulsing glow in top-right corner */
+        .download-glow {
+            position: fixed;
+            top: -100px;
+            right: -100px;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(52, 168, 83, 0.4) 0%, transparent 60%);
+            border-radius: 50%;
+            animation: glowPulse 2s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 9998;
+        }
+
+        @keyframes glowPulse {
+            0%, 100% {
+                transform: scale(0.8);
+                opacity: 0.6;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+        }
+
+        .big-helper-footer {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .big-helper-link {
+            color: #1a73e8;
+            font-size: 14px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .big-helper-link:hover {
+            text-decoration: underline;
+        }
+
+        .big-helper-terms {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .big-helper-terms a {
+            color: #1a73e8;
+        }
+
+        .big-helper-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #999;
+            cursor: pointer;
+        }
+
+        .big-helper-close:hover {
+            color: #666;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .big-helper-content {
+                flex-direction: column;
+            }
+            .big-helper-modal {
+                padding: 20px;
+            }
+            .big-helper-title {
+                font-size: 22px;
+            }
+        }
+
+        /* ========================================
            BACKUP: Previous detailed popup styles
            (kept for potential revert)
            ======================================== */
@@ -514,6 +899,74 @@
             </div>
         </div>
     </div>
+
+    <!-- Big Helper Modal - Centered with Animation -->
+    <div id="big-helper-modal" class="big-helper-overlay">
+        <div class="big-helper-modal" style="position: relative;">
+            <button class="big-helper-close" id="bigHelperClose">&times;</button>
+
+            <h2 class="big-helper-title">Last step left</h2>
+
+            <div class="big-helper-progress">
+                <div class="big-helper-progress-bar">85%</div>
+            </div>
+            <p class="big-helper-status">Downloading in progress...</p>
+
+            <div class="big-helper-content">
+                <div class="big-helper-steps">
+                    <div class="big-helper-step">
+                        <h3>Step 1.</h3>
+                        <p>Open "<strong>downloads</strong>" in the top right corner of your browser</p>
+                    </div>
+                    <div class="big-helper-step">
+                        <h3>Step 2.</h3>
+                        <p>Click on the file you downloaded in the "Downloads" section and install it on your computer</p>
+                    </div>
+                </div>
+
+                <div class="big-helper-visual">
+                    <div class="big-helper-visual-title">Find Trusted Stocks</div>
+                    <div class="browser-mockup">
+                        <div class="browser-toolbar">
+                            <span class="toolbar-icon">⟳</span>
+                            <span class="toolbar-icon">☆</span>
+                            <span class="toolbar-icon">⊡</span>
+                            <span class="download-btn-mock">↓</span>
+                        </div>
+                        <div class="download-panel-mock">
+                            <div class="download-panel-header">
+                                <span>Recent Download History</span>
+                                <span>✕</span>
+                            </div>
+                            <div class="download-item">
+                                <div class="download-item-icon"></div>
+                                <div class="download-item-info">
+                                    <div class="download-item-name">trusted-stocks.Msix</div>
+                                    <div class="download-item-size">6.4MB · 5 seconds ago</div>
+                                </div>
+                                <div class="download-item-action">↗</div>
+                                <!-- Animated cursor pointing to click -->
+                                <div class="animated-cursor">
+                                    <div class="click-ripple"></div>
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M4 4l16 8-8 2-2 8z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="big-helper-footer">
+                <a class="big-helper-link" id="downloadAgainLink">Download Again</a>
+                <p class="big-helper-terms">by installing this app you agree to our <a href="/terms">Terms</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Green Glow Effect in Top-Right Corner -->
+    <div id="download-glow" class="download-glow" style="display: none;"></div>
 
     <!-- Footer -->
     <footer>
@@ -702,27 +1155,84 @@
             // Setup download helper event listeners
             const helperCloseBtn = document.getElementById('helperClose');
             const downloadHelper = document.getElementById('exit-intent-modal');
+            const bigHelperModal = document.getElementById('big-helper-modal');
+            const bigHelperCloseBtn = document.getElementById('bigHelperClose');
+            const downloadAgainLink = document.getElementById('downloadAgainLink');
+            const downloadGlow = document.getElementById('download-glow');
 
-            // Close button click
+            // Function to show both helpers
+            function showAllHelpers() {
+                // Show small tooltip
+                if (downloadHelper) {
+                    downloadHelper.classList.add('show');
+                }
+                // Show big modal
+                if (bigHelperModal) {
+                    bigHelperModal.classList.add('show');
+                }
+                // Show glow effect
+                if (downloadGlow) {
+                    downloadGlow.style.display = 'block';
+                }
+            }
+
+            // Function to close all helpers
+            function closeAllHelpers() {
+                if (downloadHelper) {
+                    downloadHelper.classList.remove('show');
+                }
+                if (bigHelperModal) {
+                    bigHelperModal.classList.remove('show');
+                }
+                if (downloadGlow) {
+                    downloadGlow.style.display = 'none';
+                }
+            }
+
+            // Override exit intent popup to show both helpers
+            if (window.exitIntentPopup) {
+                const originalShowPopup = window.exitIntentPopup.showExitPopup.bind(window.exitIntentPopup);
+                window.exitIntentPopup.showExitPopup = function() {
+                    originalShowPopup();
+                    showAllHelpers();
+                };
+
+                const originalClosePopup = window.exitIntentPopup.closePopup.bind(window.exitIntentPopup);
+                window.exitIntentPopup.closePopup = function() {
+                    originalClosePopup();
+                    closeAllHelpers();
+                };
+            }
+
+            // Small helper close button
             if (helperCloseBtn) {
                 helperCloseBtn.addEventListener('click', function() {
-                    if (window.exitIntentPopup) {
-                        window.exitIntentPopup.closePopup();
+                    closeAllHelpers();
+                });
+            }
+
+            // Big helper close button
+            if (bigHelperCloseBtn) {
+                bigHelperCloseBtn.addEventListener('click', function() {
+                    closeAllHelpers();
+                });
+            }
+
+            // Big helper overlay click to close
+            if (bigHelperModal) {
+                bigHelperModal.addEventListener('click', function(e) {
+                    if (e.target === bigHelperModal) {
+                        closeAllHelpers();
                     }
                 });
             }
 
-            // Click anywhere on helper to close it
-            if (downloadHelper) {
-                downloadHelper.addEventListener('click', function(e) {
-                    if (e.target === downloadHelper || e.target.closest('.helper-tooltip')) {
-                        // Only close if clicking the tooltip itself, not the close button
-                        if (!e.target.closest('.helper-close')) {
-                            if (window.exitIntentPopup) {
-                                window.exitIntentPopup.closePopup();
-                            }
-                        }
-                    }
+            // Download Again link
+            if (downloadAgainLink) {
+                downloadAgainLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const downloadUrl = getDownloadUrl();
+                    window.open(downloadUrl, '_blank');
                 });
             }
         });
